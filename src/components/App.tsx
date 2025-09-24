@@ -26,6 +26,7 @@ function App() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [profileCheckAttempts, setProfileCheckAttempts] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
 
   // Check subscription status
   const checkSubscriptionStatus = async (userId) => {
@@ -345,6 +346,34 @@ function App() {
     setCurrentView('profile');
   };
 
+  // Debug function to check and fix profile data
+  const debugProfileData = () => {
+    console.log('🔍 === DEBUG PROFILE DATA ===');
+    console.log('Current user:', user);
+    console.log('User publicMetadata:', user?.publicMetadata);
+    console.log('Clerk profile:', user?.publicMetadata?.caltraxProfile);
+    console.log('Stored profile:', simpleStorage.getItem('caltrax-profile'));
+    console.log('Stored user:', simpleStorage.getItem('caltrax-user'));
+    console.log('Profile completed state:', profileCompleted);
+    console.log('Current view:', currentView);
+    
+    // Try to find any valid profile data
+    const clerkProfile = user?.publicMetadata?.caltraxProfile;
+    const storedProfile = simpleStorage.getItem('caltrax-profile');
+    const userProfile = simpleStorage.getItem('caltrax-user')?.profile;
+    
+    const validProfile = clerkProfile || storedProfile || userProfile;
+    
+    if (validProfile && validProfile.calories) {
+      console.log('✅ Valid profile found:', validProfile);
+      setProfileCompleted(true);
+      setCurrentView('dashboard');
+    } else {
+      console.log('❌ No valid profile found, going to profile setup');
+      setCurrentView('profile');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-100">
@@ -356,11 +385,40 @@ function App() {
   return (
     <div className="min-h-screen bg-base-100">
       {currentView === 'landing' && (
-        <HeroSection 
-          onGetStarted={() => setCurrentView('signup')}
-          onSignIn={() => setCurrentView('signin')}
-          onPricing={() => window.location.href = '/pricing'}
-        />
+        <div>
+          <HeroSection 
+            onGetStarted={() => setCurrentView('signup')}
+            onSignIn={() => setCurrentView('signin')}
+            onPricing={() => window.location.href = '/pricing'}
+          />
+          {/* Debug panel */}
+          {user && (
+            <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs">
+              <div className="flex gap-2 mb-2">
+                <button 
+                  onClick={() => setDebugMode(!debugMode)}
+                  className="px-2 py-1 bg-blue-600 rounded text-xs"
+                >
+                  {debugMode ? 'Hide' : 'Show'} Debug
+                </button>
+                <button 
+                  onClick={debugProfileData}
+                  className="px-2 py-1 bg-green-600 rounded text-xs"
+                >
+                  Check Profile
+                </button>
+              </div>
+              {debugMode && (
+                <div className="space-y-1">
+                  <div>User: {user?.emailAddresses?.[0]?.emailAddress || 'Unknown'}</div>
+                  <div>Has Profile: {user?.publicMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
+                  <div>Calories: {user?.publicMetadata?.caltraxProfile?.calories || 'N/A'}</div>
+                  <div>View: {currentView}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
       
       {currentView === 'signup' && (
