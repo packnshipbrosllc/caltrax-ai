@@ -34,7 +34,7 @@ const getProgressColor = (percentage) => {
   return 'text-red-400';
 };
 
-export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onShowWorkout, user }) {
+export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onShowWorkout, onLogout, user }) {
   const [view, setView] = useState('today'); // 'today' or 'week'
   const [todayData, setTodayData] = useState(null);
   const [weekData, setWeekData] = useState(null);

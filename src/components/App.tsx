@@ -194,6 +194,7 @@ function App() {
             onAddFood={() => setCurrentView('app')}
             onShowMealPlan={() => setCurrentView('mealplan')}
             onShowWorkout={() => setCurrentView('workout')}
+            onLogout={handleLogout}
             user={user}
           />
         </>
@@ -201,8 +202,12 @@ function App() {
       
       {currentView === 'app' && (
         <FoodLensDemo 
-          onBack={() => setCurrentView('dashboard')}
-          onFoodAdded={() => setCurrentView('dashboard')}
+          onLogout={handleLogout}
+          onShowDashboard={() => setCurrentView('dashboard')}
+          onShowMealPlan={() => setCurrentView('mealplan')}
+          onShowAdmin={handleAdminAccess}
+          onShowSubscriptionManagement={() => setShowSubscriptionManagement(true)}
+          user={user}
         />
       )}
       
