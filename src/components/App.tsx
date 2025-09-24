@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/nextjs';
+import { SignIn, SignUp } from '@clerk/nextjs';
 import { HeroSection } from './landing/hero-section';
 import UserProfile from './legacy/UserProfile';
 import MacroDashboard from './legacy/MacroDashboard';
@@ -14,22 +16,26 @@ import { simpleStorage } from '../lib/simpleStorage';
 import { authService } from '../services/authService';
 
 function App() {
-  const [user, setUser] = useState(null);
+  const { user, isLoaded } = useUser();
+  const { signOut } = useAuth();
   const [currentView, setCurrentView] = useState('landing');
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState(false);
   const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
 
-  // Initialize app
+  // Initialize app when Clerk user state changes
   useEffect(() => {
-    console.log('🔍 App initializing...');
-    
-    // Check if user is already signed in
-    const storedUser = simpleStorage.getItem('caltrax-user');
-    if (storedUser) {
-      console.log('User found in storage:', storedUser);
-      setUser(storedUser);
+    if (!isLoaded) {
+      setIsLoading(true);
+      return;
+    }
+
+    console.log('🔍 Clerk user state changed:', { user: !!user, isLoaded });
+
+    if (user) {
+      // User is signed in with Clerk
+      console.log('User signed in with Clerk:', user);
       
       // Check if profile is completed
       const storedProfile = simpleStorage.getItem('caltrax-profile');
@@ -42,12 +48,13 @@ function App() {
         setCurrentView('profile');
       }
     } else {
-      console.log('No user found, staying on landing page');
+      // User is not signed in
+      console.log('User not signed in, staying on landing page');
       setCurrentView('landing');
     }
 
     setIsLoading(false);
-  }, []);
+  }, [user, isLoaded]);
 
   const handleSignUp = (userData) => {
     console.log('Handling sign up:', userData);
@@ -91,9 +98,9 @@ function App() {
     setCurrentView('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log('Logging out...');
-    setUser(null);
+    await signOut();
     simpleStorage.removeItem('caltrax-user');
     simpleStorage.removeItem('caltrax-profile');
     setProfileCompleted(false);
@@ -138,33 +145,11 @@ function App() {
       {currentView === 'signup' && (
         <div className="min-h-screen flex items-center justify-center bg-base-100">
           <div className="w-full max-w-md">
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title">Sign Up</h2>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Email</span>
-                  </label>
-                  <input type="email" placeholder="Enter your email" className="input input-bordered" />
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Password</span>
-                  </label>
-                  <input type="password" placeholder="Enter your password" className="input input-bordered" />
-                </div>
-                <div className="form-control mt-6">
-                  <button className="btn btn-primary" onClick={() => handleSignUp({email: 'test@example.com', name: 'Test User'})}>
-                    Sign Up
-                  </button>
-                </div>
-                <div className="text-center mt-4">
-                  <button className="link" onClick={() => setCurrentView('signin')}>
-                    Already have an account? Sign In
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SignUp 
+              routing="hash"
+              afterSignUpUrl="/"
+              afterSignInUrl="/"
+            />
           </div>
         </div>
       )}
@@ -172,33 +157,11 @@ function App() {
       {currentView === 'signin' && (
         <div className="min-h-screen flex items-center justify-center bg-base-100">
           <div className="w-full max-w-md">
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title">Sign In</h2>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Email</span>
-                  </label>
-                  <input type="email" placeholder="Enter your email" className="input input-bordered" />
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Password</span>
-                  </label>
-                  <input type="password" placeholder="Enter your password" className="input input-bordered" />
-                </div>
-                <div className="form-control mt-6">
-                  <button className="btn btn-primary" onClick={() => handleSignIn({email: 'test@example.com', name: 'Test User'})}>
-                    Sign In
-                  </button>
-                </div>
-                <div className="text-center mt-4">
-                  <button className="link" onClick={() => setCurrentView('signup')}>
-                    Don't have an account? Sign Up
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SignIn 
+              routing="hash"
+              afterSignInUrl="/"
+              afterSignUpUrl="/"
+            />
           </div>
         </div>
       )}
