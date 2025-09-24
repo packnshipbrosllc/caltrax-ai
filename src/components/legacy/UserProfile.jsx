@@ -152,12 +152,21 @@ export default function UserProfile({ onComplete, user }) {
   };
 
   const handleNext = () => {
+    console.log('🔍 === HANDLE NEXT CALLED ===');
+    console.log('Current step:', step);
+    console.log('Profile data:', profileData);
+    
     if (step < 3) {
+      console.log('Moving to next step');
       setStep(step + 1);
     } else {
+      console.log('🔍 === COMPLETING PROFILE SETUP ===');
       // Complete profile setup
       const calories = calculateCalories();
       const macros = calories ? calculateMacros(calories) : null;
+      
+      console.log('Calculated calories:', calories);
+      console.log('Calculated macros:', macros);
       
       const completeProfile = {
         ...profileData,
@@ -165,6 +174,8 @@ export default function UserProfile({ onComplete, user }) {
         macros,
         completedAt: new Date().toISOString()
       };
+
+      console.log('Complete profile object:', completeProfile);
 
       // Update user data
       const updatedUser = { ...user, profile: completeProfile };

@@ -89,13 +89,24 @@ function App() {
   };
 
   const handleProfileComplete = (profile) => {
+    console.log('🔍 === HANDLE PROFILE COMPLETE CALLED ===');
     console.log('Profile completed:', profile);
+    console.log('Current user:', user);
+    
     const updatedUser = { ...user, profile };
+    console.log('Updated user:', updatedUser);
+    
     // setUser(updatedUser); // Clerk manages user state
     simpleStorage.setItem('caltrax-user', updatedUser);
     simpleStorage.setItem('caltrax-profile', profile);
+    
+    console.log('Setting profile completed to true');
     setProfileCompleted(true);
+    
+    console.log('Setting current view to dashboard');
     setCurrentView('dashboard');
+    
+    console.log('🔍 === PROFILE COMPLETE FINISHED ===');
   };
 
   const handleLogout = async () => {
