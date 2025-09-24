@@ -34,10 +34,38 @@ export const decryptData = (encryptedData) => {
     return JSON.parse(decrypted);
   } catch (error) {
     console.warn('Decryption error (clearing corrupted data):', error);
-    // Clear the corrupted data
+    // Clear ALL potentially corrupted data
     try {
-      localStorage.removeItem('caltrax-user');
-      sessionStorage.removeItem('caltrax-user');
+      // Clear all CalTrax related data
+      const keysToRemove = [
+        'caltrax-user',
+        'caltrax-profile', 
+        'caltrax-signed-up',
+        'caltrax-subscription',
+        'caltrax-payment'
+      ];
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Also clear any encrypted data that might be corrupted
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes('caltrax')) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.includes('caltrax')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+      
+      console.log('✅ Cleared all potentially corrupted CalTrax data');
     } catch (clearError) {
       console.warn('Failed to clear corrupted data:', clearError);
     }
@@ -119,6 +147,50 @@ export const maskSensitiveData = (data) => {
   }
   
   return masked;
+};
+
+// Clear all CalTrax data (emergency reset)
+export const clearAllCalTraxData = () => {
+  try {
+    console.log('🧹 Clearing all CalTrax data...');
+    
+    // Clear all CalTrax related data
+    const keysToRemove = [
+      'caltrax-user',
+      'caltrax-profile', 
+      'caltrax-signed-up',
+      'caltrax-subscription',
+      'caltrax-payment',
+      'caltrax-macros',
+      'caltrax-food-entries'
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    
+    // Clear any remaining CalTrax keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.includes('caltrax')) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key && key.includes('caltrax')) {
+        sessionStorage.removeItem(key);
+      }
+    }
+    
+    console.log('✅ All CalTrax data cleared successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to clear CalTrax data:', error);
+    return false;
+  }
 };
 
 // Secure storage with encryption and Safari iOS compatibility

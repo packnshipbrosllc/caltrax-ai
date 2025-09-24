@@ -209,18 +209,49 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
               Subscription
             </Button>
             <Button 
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('🔍 === MACRODASHBOARD LOGOUT BUTTON CLICKED ===');
+                console.log('Event:', e);
                 console.log('onLogout function:', onLogout);
-                if (onLogout) {
+                console.log('User agent:', navigator.userAgent);
+                console.log('Is mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+                
+                if (onLogout && typeof onLogout === 'function') {
                   console.log('Calling onLogout...');
                   onLogout();
                 } else {
-                  console.error('❌ onLogout is not defined');
+                  console.error('❌ onLogout is not defined or not a function');
+                }
+              }}
+              onMouseDown={(e) => {
+                console.log('🔍 Logout button mouse down');
+                e.preventDefault();
+              }}
+              onMouseUp={(e) => {
+                console.log('🔍 Logout button mouse up');
+                e.preventDefault();
+              }}
+              onDoubleClick={(e) => {
+                console.log('🔍 Logout button double clicked - fallback');
+                e.preventDefault();
+                e.stopPropagation();
+                if (onLogout && typeof onLogout === 'function') {
+                  onLogout();
                 }
               }}
               variant="outline"
-              className="border-red-600 text-red-300 hover:bg-red-800"
+              className="border-red-600 text-red-300 hover:bg-red-800 cursor-pointer"
+              style={{ 
+                pointerEvents: 'auto',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
+                minHeight: '40px',
+                minWidth: '100px'
+              }}
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout

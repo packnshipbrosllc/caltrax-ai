@@ -11,7 +11,7 @@ import ManualFoodInput from './legacy/ManualFoodInput';
 import BarcodeScanner from './legacy/BarcodeScanner';
 import { StripePaymentForm } from './payment/stripe-payment-form';
 import SubscriptionManagement from './legacy/SubscriptionManagement';
-import { secureStorage, hasAdminAccess } from '../lib/security';
+import { secureStorage, hasAdminAccess, clearAllCalTraxData } from '../lib/security';
 import { simpleStorage } from '../lib/simpleStorage';
 import { authService } from '../services/authService';
 
@@ -56,6 +56,26 @@ function App() {
       setSubscriptionLoading(false);
     }
   };
+
+  // Handle decryption errors and clear corrupted data
+  useEffect(() => {
+    const handleStorageError = (e) => {
+      if (e.message && e.message.includes('Decryption error')) {
+        console.warn('🚨 Decryption error detected, clearing all data');
+        clearAllCalTraxData();
+        setCurrentView('landing');
+        setProfileCompleted(false);
+        setHasActiveSubscription(false);
+      }
+    };
+
+    // Listen for unhandled errors
+    window.addEventListener('error', handleStorageError);
+    
+    return () => {
+      window.removeEventListener('error', handleStorageError);
+    };
+  }, []);
 
   // Initialize app when Clerk user state changes
   useEffect(() => {
@@ -183,21 +203,34 @@ function App() {
     console.log('🔍 === HANDLE LOGOUT CALLED ===');
     console.log('Current user:', user);
     console.log('SignOut function:', signOut);
+    console.log('User agent:', navigator.userAgent);
+    console.log('Is mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     
     try {
       console.log('Calling signOut...');
-      await signOut();
-      console.log('✅ SignOut successful');
+      if (signOut && typeof signOut === 'function') {
+        await signOut();
+        console.log('✅ SignOut successful');
+      } else {
+        console.warn('⚠️ signOut function not available, proceeding with manual logout');
+      }
     } catch (error) {
       console.error('❌ SignOut failed:', error);
+      console.log('Proceeding with manual logout...');
     }
     
     console.log('Clearing local storage...');
-    simpleStorage.removeItem('caltrax-user');
-    simpleStorage.removeItem('caltrax-profile');
+    try {
+      // Use the emergency clear function to ensure all data is removed
+      clearAllCalTraxData();
+      console.log('✅ Storage cleared successfully');
+    } catch (storageError) {
+      console.error('❌ Error clearing storage:', storageError);
+    }
     
     console.log('Resetting app state...');
     setProfileCompleted(false);
+    setHasActiveSubscription(false);
     setCurrentView('landing');
     
     console.log('🔍 === LOGOUT COMPLETE ===');
