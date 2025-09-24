@@ -208,16 +208,10 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
               <CreditCard className="w-4 h-4 mr-2" />
               Subscription
             </Button>
-            <Button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔍 === MACRODASHBOARD LOGOUT BUTTON CLICKED ===');
-                console.log('Event:', e);
+            <button
+              onClick={() => {
+                console.log('🔍 === SIMPLE LOGOUT BUTTON CLICKED ===');
                 console.log('onLogout function:', onLogout);
-                console.log('User agent:', navigator.userAgent);
-                console.log('Is mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-                
                 if (onLogout && typeof onLogout === 'function') {
                   console.log('Calling onLogout...');
                   onLogout();
@@ -225,37 +219,17 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
                   console.error('❌ onLogout is not defined or not a function');
                 }
               }}
-              onMouseDown={(e) => {
-                console.log('🔍 Logout button mouse down');
-                e.preventDefault();
-              }}
-              onMouseUp={(e) => {
-                console.log('🔍 Logout button mouse up');
-                e.preventDefault();
-              }}
-              onDoubleClick={(e) => {
-                console.log('🔍 Logout button double clicked - fallback');
-                e.preventDefault();
-                e.stopPropagation();
-                if (onLogout && typeof onLogout === 'function') {
-                  onLogout();
-                }
-              }}
-              variant="outline"
-              className="border-red-600 text-red-300 hover:bg-red-800 cursor-pointer"
+              className="px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 border border-red-600 text-red-300 hover:bg-red-800 cursor-pointer flex items-center gap-2"
               style={{ 
                 pointerEvents: 'auto',
                 userSelect: 'none',
-                WebkitUserSelect: 'none',
-                MozUserSelect: 'none',
-                msUserSelect: 'none',
                 minHeight: '40px',
                 minWidth: '100px'
               }}
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-4 h-4" />
               Logout
-            </Button>
+            </button>
           </div>
         </div>
 

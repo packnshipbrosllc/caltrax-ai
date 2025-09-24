@@ -39,15 +39,22 @@ function App() {
       const storedProfile = simpleStorage.getItem('caltrax-profile');
       const hasCompletedSetup = !!(clerkProfile || storedProfile);
       
-      if (hasCompletedSetup) {
-        console.log('✅ User has completed setup - allowing access');
-        setHasActiveSubscription(true);
-        return true;
-      } else {
-        console.log('❌ User needs to complete payment and setup');
-        setHasActiveSubscription(false);
-        return false;
-      }
+      // TEMPORARILY: Allow access without payment for testing
+      // In production, this should check Stripe subscription status
+      console.log('🔍 TEMPORARY: Allowing access without payment for testing');
+      setHasActiveSubscription(true);
+      return true;
+      
+      // PRODUCTION CODE (commented out for now):
+      // if (hasCompletedSetup) {
+      //   console.log('✅ User has completed setup - allowing access');
+      //   setHasActiveSubscription(true);
+      //   return true;
+      // } else {
+      //   console.log('❌ User needs to complete payment and setup');
+      //   setHasActiveSubscription(false);
+      //   return false;
+      // }
     } catch (error) {
       console.error('❌ Error checking subscription status:', error);
       setHasActiveSubscription(false);
@@ -163,13 +170,24 @@ function App() {
       // Update Clerk user metadata with profile data
       if (user) {
         console.log('Updating Clerk user metadata with profile...');
+        console.log('Current publicMetadata:', user.publicMetadata);
+        console.log('Profile to save:', profile);
+        
+        const updatedMetadata = {
+          ...user.publicMetadata,
+          caltraxProfile: profile
+        };
+        
+        console.log('Updated metadata:', updatedMetadata);
+        
         await user.update({
-          publicMetadata: {
-            ...user.publicMetadata,
-            caltraxProfile: profile
-          }
+          publicMetadata: updatedMetadata
         });
+        
         console.log('✅ Profile saved to Clerk user metadata');
+        console.log('Verification - user.publicMetadata after update:', user.publicMetadata);
+      } else {
+        console.log('❌ No user object available for metadata update');
       }
       
       // Also save to local storage as backup
