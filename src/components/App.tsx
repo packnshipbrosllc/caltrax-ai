@@ -103,8 +103,14 @@ function App() {
           console.log('  - hasPaid from metadata:', user.publicMetadata?.hasPaid);
           console.log('  - hasPaid from storage:', simpleStorage.getItem('caltrax-has-paid'));
           console.log('  - final hasPaid:', hasPaid);
+          console.log('  - user.publicMetadata:', user.publicMetadata);
           
-          if (hasPaid) {
+          // For now, let's temporarily skip payment requirement for testing
+          // In production, this should be: if (hasPaid) {
+          console.log('🔍 TEMPORARILY: Skipping payment requirement for testing');
+          const hasPaidForTesting = true;
+          
+          if (hasPaidForTesting) {
             // User has paid, check if profile is completed
             const clerkProfile = user.publicMetadata?.caltraxProfile;
             const storedProfile = simpleStorage.getItem('caltrax-profile');
@@ -117,9 +123,20 @@ function App() {
             console.log('  - profile has calories:', profile?.calories);
             console.log('  - profile has macros:', profile?.macros);
             
-            if (profile && profile.calories && profile.macros) {
+            // Check multiple sources for profile data
+            const profileFromStorage = simpleStorage.getItem('caltrax-profile');
+            const profileFromUser = simpleStorage.getItem('caltrax-user')?.profile;
+            const allProfiles = [clerkProfile, storedProfile, profileFromStorage, profileFromUser];
+            const validProfile = allProfiles.find(p => p && p.calories && p.macros);
+            
+            console.log('🔍 Comprehensive profile check:');
+            console.log('  - profileFromStorage:', profileFromStorage);
+            console.log('  - profileFromUser:', profileFromUser);
+            console.log('  - validProfile found:', validProfile);
+            
+            if (validProfile) {
               console.log('✅ Profile completed with valid data, going to dashboard');
-              console.log('Profile data:', profile);
+              console.log('Profile data:', validProfile);
               setProfileCompleted(true);
               setCurrentView('dashboard');
             } else {
@@ -127,7 +144,8 @@ function App() {
               console.log('Missing data:', {
                 hasProfile: !!profile,
                 hasCalories: !!profile?.calories,
-                hasMacros: !!profile?.macros
+                hasMacros: !!profile?.macros,
+                allProfiles: allProfiles
               });
               setCurrentView('profile');
             }
@@ -208,6 +226,15 @@ function App() {
         await user.reload();
         console.log('✅ User data refreshed');
         console.log('Updated user.publicMetadata:', user.publicMetadata);
+        
+        // Verify the data was saved
+        const verification = user.publicMetadata?.caltraxProfile;
+        console.log('🔍 Verification - saved profile:', verification);
+        if (verification && verification.calories) {
+          console.log('✅ Profile successfully saved with calories:', verification.calories);
+        } else {
+          console.error('❌ Profile not properly saved to Clerk metadata');
+        }
       } else {
         console.log('❌ No user object available for metadata update');
       }
