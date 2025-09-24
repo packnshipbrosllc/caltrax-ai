@@ -18,11 +18,29 @@ export const encryptData = (data) => {
 // Decrypt sensitive data
 export const decryptData = (encryptedData) => {
   try {
+    if (!encryptedData || typeof encryptedData !== 'string') {
+      console.warn('Invalid encrypted data provided to decryptData');
+      return null;
+    }
+    
     const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    
+    if (!decrypted || decrypted.length === 0) {
+      console.warn('Decryption resulted in empty string');
+      return null;
+    }
+    
     return JSON.parse(decrypted);
   } catch (error) {
-    console.error('Decryption error:', error);
+    console.warn('Decryption error (clearing corrupted data):', error);
+    // Clear the corrupted data
+    try {
+      localStorage.removeItem('caltrax-user');
+      sessionStorage.removeItem('caltrax-user');
+    } catch (clearError) {
+      console.warn('Failed to clear corrupted data:', clearError);
+    }
     return null;
   }
 };
@@ -168,8 +186,13 @@ export const secureStorage = {
       
       if (encrypted) {
         const decrypted = decryptData(encrypted);
-        console.log(`✅ Data decrypted successfully for key: ${key}`, decrypted);
-        return decrypted;
+        if (decrypted) {
+          console.log(`✅ Data decrypted successfully for key: ${key}`, decrypted);
+          return decrypted;
+        } else {
+          console.log(`❌ Decryption failed for key: ${key}, returning null`);
+          return null;
+        }
       }
       console.log(`❌ No encrypted data found for key: ${key}`);
       return null;
