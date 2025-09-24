@@ -185,13 +185,18 @@ function App() {
       )}
       
       {currentView === 'dashboard' && (
-        <MacroDashboard 
-          onBack={() => setCurrentView('landing')}
-          onAddFood={() => setCurrentView('app')}
-          onShowMealPlan={() => setCurrentView('mealplan')}
-          onShowWorkout={() => setCurrentView('workout')}
-          user={user}
-        />
+        <>
+          {console.log('🔍 === RENDERING DASHBOARD ===')}
+          {console.log('🔍 Dashboard user:', user)}
+          {console.log('🔍 Dashboard user profile:', user?.profile)}
+          <MacroDashboard 
+            onBack={() => setCurrentView('landing')}
+            onAddFood={() => setCurrentView('app')}
+            onShowMealPlan={() => setCurrentView('mealplan')}
+            onShowWorkout={() => setCurrentView('workout')}
+            user={user}
+          />
+        </>
       )}
       
       {currentView === 'app' && (
