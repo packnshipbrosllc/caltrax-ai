@@ -267,16 +267,25 @@ export default function UserProfile({ onComplete, user }) {
   };
 
   const isStepValid = () => {
-    switch (step) {
-      case 1:
-        return profileData.height && profileData.weight && profileData.age && profileData.gender;
-      case 2:
-        return profileData.activityLevel && profileData.goals.length > 0;
-      case 3:
-        return true; // Dietary restrictions are optional
-      default:
-        return false;
-    }
+    const isValid = (() => {
+      switch (step) {
+        case 1:
+          return profileData.height && profileData.weight && profileData.age && profileData.gender;
+        case 2:
+          return profileData.activityLevel && profileData.goals.length > 0;
+        case 3:
+          return true; // Dietary restrictions are optional
+        default:
+          return false;
+      }
+    })();
+    
+    console.log('🔍 === STEP VALIDATION ===');
+    console.log('Current step:', step);
+    console.log('Profile data:', profileData);
+    console.log('Is step valid:', isValid);
+    
+    return isValid;
   };
 
   return (
@@ -557,7 +566,13 @@ export default function UserProfile({ onComplete, user }) {
             Previous
           </Button>
           <Button
-            onClick={handleNext}
+            onClick={() => {
+              console.log('🔍 === BUTTON CLICKED ===');
+              console.log('Step:', step);
+              console.log('Is valid:', isStepValid());
+              console.log('Profile data:', profileData);
+              handleNext();
+            }}
             disabled={!isStepValid()}
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
           >
