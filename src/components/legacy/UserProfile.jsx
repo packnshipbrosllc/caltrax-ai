@@ -4,6 +4,7 @@ import { User, Target, Scale, Ruler, Calendar, ArrowRight, Check } from 'lucide-
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { simpleStorage } from '../../lib/simpleStorage';
+import { authService } from '../../services/authService';
 
 export default function UserProfile({ onComplete, user }) {
   const [step, setStep] = useState(1);
@@ -180,7 +181,26 @@ export default function UserProfile({ onComplete, user }) {
       
       console.log('Profile completed - updatedUser:', updatedUser);
       
-      // Save to simple storage (Vercel deployment)
+      // Save to Supabase first
+      const saveToSupabase = async () => {
+        try {
+          if (user?.id) {
+            console.log('Saving profile to Supabase...', completeProfile);
+            await authService.updateProfile(user.id, completeProfile);
+            console.log('✅ Profile saved to Supabase successfully');
+          } else {
+            console.log('❌ No user ID found, cannot save to Supabase');
+          }
+        } catch (error) {
+          console.error('❌ Failed to save profile to Supabase:', error);
+          console.log('Falling back to local storage...');
+        }
+      };
+      
+      // Save to Supabase
+      await saveToSupabase();
+      
+      // Also save to local storage as backup
       const saveSuccess = simpleStorage.setItem('caltrax-user', updatedUser);
       const signupSuccess = simpleStorage.setItem('caltrax-signed-up', true);
       
@@ -191,9 +211,6 @@ export default function UserProfile({ onComplete, user }) {
       // Verify the data was saved (important for mobile)
       const savedUser = simpleStorage.getItem('caltrax-user');
       console.log('Verification - saved user data:', savedUser);
-      
-      // TODO: Add Supabase integration when ready
-      console.log('Profile saved locally - Supabase integration pending');
       
       // Safari iOS needs more time for storage operations
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
