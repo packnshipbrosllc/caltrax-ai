@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { Camera, Brain, Zap, Shield, BarChart3, Smartphone, ArrowRight, Utensils, Dumbbell } from 'lucide-react';
 import { Button } from '../legacy/ui/Button';
 
@@ -69,17 +68,20 @@ export function HeroSection({ onGetStarted, onSignIn, onPricing }: HeroSectionPr
               <span className="text-xl font-bold">CalTrax AI</span>
       </div>
             <div className="flex gap-4">
-              <Link href="/auth/signup">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                  Get Started
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/auth/signin">
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
-                  Sign In
-                </Button>
-              </Link>
+              <Button 
+                onClick={onGetStarted}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              >
+                Get Started
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button 
+                onClick={onSignIn}
+                variant="outline" 
+                className="border-white text-white hover:bg-white hover:text-gray-900"
+              >
+                Sign In
+              </Button>
           </div>
           </div>
       </div>
@@ -216,24 +218,22 @@ export function HeroSection({ onGetStarted, onSignIn, onPricing }: HeroSectionPr
               Join thousands of users who are already making smarter food choices with CalTrax AI
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signup">
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
-                >
-                  Start Your Journey
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/auth/signin">
-                <Button 
-                  variant="outline"
-                  size="lg"
-                  className="border-white text-white hover:bg-white hover:text-gray-900 text-lg px-8 py-4"
-                >
-                  Sign In
-                </Button>
-              </Link>
+              <Button 
+                onClick={onGetStarted}
+                size="lg"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
+              >
+                Start Your Journey
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+              <Button 
+                onClick={onSignIn}
+                variant="outline"
+                size="lg"
+                className="border-white text-white hover:bg-white hover:text-gray-900 text-lg px-8 py-4"
+              >
+                Sign In
+              </Button>
             </div>
           </motion.div>
         </div>
