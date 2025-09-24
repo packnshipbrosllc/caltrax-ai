@@ -3,9 +3,7 @@ import { motion } from 'framer-motion';
 import { User, Target, Scale, Ruler, Calendar, ArrowRight, Check } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { secureStorage } from '../../lib/security';
 import { simpleStorage } from '../../lib/simpleStorage';
-import { authService } from '../../services/authService';
 
 export default function UserProfile({ onComplete, user }) {
   const [step, setStep] = useState(1);
@@ -182,32 +180,7 @@ export default function UserProfile({ onComplete, user }) {
       
       console.log('Profile completed - updatedUser:', updatedUser);
       
-      // Save to Supabase first
-      const saveToSupabase = async () => {
-        try {
-          if (user?.id) {
-            console.log('Saving profile to Supabase...', completeProfile);
-            console.log('Profile data structure:', {
-              calories: completeProfile.calories,
-              macros: completeProfile.macros,
-              height: completeProfile.height,
-              weight: completeProfile.weight,
-              age: completeProfile.age,
-              gender: completeProfile.gender,
-              activityLevel: completeProfile.activityLevel,
-              goals: completeProfile.goals
-            });
-            await authService.updateProfile(user.id, completeProfile);
-            console.log('✅ Profile saved to Supabase successfully');
-          } else {
-            console.log('❌ No user ID found, cannot save to Supabase');
-          }
-        } catch (error) {
-          console.error('❌ Failed to save profile to Supabase:', error);
-        }
-      };
-      
-      // Save to simple storage
+      // Save to simple storage (Vercel deployment)
       const saveSuccess = simpleStorage.setItem('caltrax-user', updatedUser);
       const signupSuccess = simpleStorage.setItem('caltrax-signed-up', true);
       
@@ -219,37 +192,8 @@ export default function UserProfile({ onComplete, user }) {
       const savedUser = simpleStorage.getItem('caltrax-user');
       console.log('Verification - saved user data:', savedUser);
       
-      // Save to Supabase
-      saveToSupabase();
-      
-      // Also save profile to server for cross-device functionality
-      const saveProfileToServer = async () => {
-        try {
-          const serverResponse = await fetch('/.netlify/functions/save-user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: user.email,
-              password: user.password, // Keep existing password
-              profile: completeProfile, // Save the completed profile
-              plan: user.plan,
-              subscriptionData: user.subscriptionData || {}
-            })
-          });
-          
-          if (serverResponse.ok) {
-            console.log('✅ Profile saved to server for cross-device access');
-          } else {
-            console.log('⚠️ Failed to save profile to server');
-          }
-        } catch (serverError) {
-          console.log('⚠️ Server profile save failed:', serverError.message);
-        }
-      };
-      
-      saveProfileToServer();
+      // TODO: Add Supabase integration when ready
+      console.log('Profile saved locally - Supabase integration pending');
       
       // Safari iOS needs more time for storage operations
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
