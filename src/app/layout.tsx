@@ -13,11 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider 
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZXRoaWNhbC1hc3AtOTcuY2xlcmsuYWNjb3VudHMuZGV2JA'}
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
-    >
+        <ClerkProvider
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZXRoaWNhbC1hc3AtOTcuY2xlcmsuYWNjb3VudHMuZGV2JA'}
+          signInFallbackRedirectUrl="https://caltrax.ai"
+          signUpFallbackRedirectUrl="https://caltrax.ai"
+        >
       <html lang="en" suppressHydrationWarning>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
