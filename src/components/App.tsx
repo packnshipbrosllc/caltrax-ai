@@ -35,18 +35,15 @@ function App() {
   // Track if we've already initialized to prevent re-initialization
   const hasInitialized = useRef(false);
 
-  // Initialize app when Clerk user state changes
+  // Initialize app
   useEffect(() => {
-    if (!isLoaded) {
-      setIsLoading(true);
-      return;
-    }
-
-    console.log('🔍 Clerk user state changed:', { user: !!user, isLoaded });
-
-    if (user) {
-      // User is signed in with Clerk
-      console.log('User signed in with Clerk:', user);
+    console.log('🔍 App initializing...');
+    
+    // Check if user is already signed in
+    const storedUser = simpleStorage.getItem('caltrax-user');
+    if (storedUser) {
+      console.log('User found in storage:', storedUser);
+      setUser(storedUser);
       
       // Check if profile is completed
       const storedProfile = simpleStorage.getItem('caltrax-profile');
@@ -59,13 +56,12 @@ function App() {
         setCurrentView('profile');
       }
     } else {
-      // User is not signed in
-      console.log('User not signed in, staying on landing page');
+      console.log('No user found, staying on landing page');
       setCurrentView('landing');
     }
 
     setIsLoading(false);
-  }, [user, isLoaded]);
+  }, []);
 
   const handleSignUp = (userData) => {
     console.log('Handling sign up:', userData);
