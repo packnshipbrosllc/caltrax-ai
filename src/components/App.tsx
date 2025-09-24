@@ -33,25 +33,30 @@ function App() {
 
     console.log('🔍 Clerk user state changed:', { user: !!user, isLoaded });
 
-    if (user) {
-      // User is signed in with Clerk
-      console.log('User signed in with Clerk:', user);
-      
-      // Check if profile is completed
-      const storedProfile = simpleStorage.getItem('caltrax-profile');
-      if (storedProfile) {
-        console.log('Profile completed, going to dashboard');
-        setProfileCompleted(true);
-        setCurrentView('dashboard');
-      } else {
-        console.log('Profile not completed, going to profile setup');
-        setCurrentView('profile');
-      }
-    } else {
-      // User is not signed in
-      console.log('User not signed in, staying on landing page');
-      setCurrentView('landing');
-    }
+        if (user) {
+          // User is signed in with Clerk
+          console.log('User signed in with Clerk:', user);
+          console.log('User publicMetadata:', user.publicMetadata);
+          
+          // Check if profile is completed in Clerk metadata or local storage
+          const clerkProfile = user.publicMetadata?.caltraxProfile;
+          const storedProfile = simpleStorage.getItem('caltrax-profile');
+          const profile = clerkProfile || storedProfile;
+          
+          if (profile) {
+            console.log('Profile completed, going to dashboard');
+            console.log('Profile data:', profile);
+            setProfileCompleted(true);
+            setCurrentView('dashboard');
+          } else {
+            console.log('Profile not completed, going to profile setup');
+            setCurrentView('profile');
+          }
+        } else {
+          // User is not signed in
+          console.log('User not signed in, staying on landing page');
+          setCurrentView('landing');
+        }
 
     setIsLoading(false);
   }, [user, isLoaded]);
@@ -88,25 +93,45 @@ function App() {
     }
   };
 
-  const handleProfileComplete = (profile) => {
+  const handleProfileComplete = async (profile) => {
     console.log('🔍 === HANDLE PROFILE COMPLETE CALLED ===');
     console.log('Profile completed:', profile);
     console.log('Current user:', user);
     
-    const updatedUser = { ...user, profile };
-    console.log('Updated user:', updatedUser);
-    
-    // setUser(updatedUser); // Clerk manages user state
-    simpleStorage.setItem('caltrax-user', updatedUser);
-    simpleStorage.setItem('caltrax-profile', profile);
-    
-    console.log('Setting profile completed to true');
-    setProfileCompleted(true);
-    
-    console.log('Setting current view to dashboard');
-    setCurrentView('dashboard');
-    
-    console.log('🔍 === PROFILE COMPLETE FINISHED ===');
+    try {
+      // Update Clerk user metadata with profile data
+      if (user) {
+        console.log('Updating Clerk user metadata with profile...');
+        await user.update({
+          publicMetadata: {
+            ...user.publicMetadata,
+            caltraxProfile: profile
+          }
+        });
+        console.log('✅ Profile saved to Clerk user metadata');
+      }
+      
+      // Also save to local storage as backup
+      const updatedUser = { ...user, profile };
+      simpleStorage.setItem('caltrax-user', updatedUser);
+      simpleStorage.setItem('caltrax-profile', profile);
+      
+      console.log('Setting profile completed to true');
+      setProfileCompleted(true);
+      
+      console.log('Setting current view to dashboard');
+      setCurrentView('dashboard');
+      
+      console.log('🔍 === PROFILE COMPLETE FINISHED ===');
+    } catch (error) {
+      console.error('❌ Failed to save profile to Clerk:', error);
+      // Fallback to local storage
+      const updatedUser = { ...user, profile };
+      simpleStorage.setItem('caltrax-user', updatedUser);
+      simpleStorage.setItem('caltrax-profile', profile);
+      setProfileCompleted(true);
+      setCurrentView('dashboard');
+    }
   };
 
   const handleLogout = async () => {

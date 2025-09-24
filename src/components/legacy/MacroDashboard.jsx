@@ -9,12 +9,14 @@ import {
   Plus,
   ArrowLeft,
   Utensils,
-  Dumbbell
+  Dumbbell,
+  LogOut
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Progress } from './ui/Progress';
 import { getTodayMacros, getWeekMacros, getWeeklyTotals, deleteFoodEntry } from '../../lib/macroStorage';
+import { simpleStorage } from '../../lib/simpleStorage';
 
 // Helper functions
 const formatTime = (timestamp) => {
@@ -49,33 +51,41 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
   // Update daily goals when user profile changes
   useEffect(() => {
     console.log('🔍 MacroDashboard useEffect - user:', user);
-    console.log('🔍 MacroDashboard useEffect - user?.profile:', user?.profile);
+    console.log('🔍 MacroDashboard useEffect - user?.publicMetadata:', user?.publicMetadata);
     
-    if (user?.profile) {
-      console.log('MacroDashboard - Updating daily goals from user profile');
-      console.log('MacroDashboard - user.profile.calories:', user.profile.calories);
-      console.log('MacroDashboard - user.profile.macros:', user.profile.macros);
+    // Get profile from Clerk user metadata
+    const clerkProfile = user?.publicMetadata?.caltraxProfile;
+    
+    // Fallback to local storage
+    const storedProfile = simpleStorage.getItem('caltrax-profile');
+    
+    console.log('🔍 MacroDashboard - clerkProfile:', clerkProfile);
+    console.log('🔍 MacroDashboard - storedProfile:', storedProfile);
+    
+    const profile = clerkProfile || storedProfile;
+    
+    if (profile) {
+      console.log('MacroDashboard - Updating daily goals from profile');
+      console.log('MacroDashboard - profile.calories:', profile.calories);
+      console.log('MacroDashboard - profile.macros:', profile.macros);
       
       const newDailyGoals = {
-        calories: user.profile.calories || 2000,
-        protein_g: user.profile.macros?.protein || 150,
-        fat_g: user.profile.macros?.fat || 65,
-        carbs_g: user.profile.macros?.carbs || 250
+        calories: profile.calories || 2000,
+        protein_g: profile.macros?.protein || 150,
+        fat_g: profile.macros?.fat || 65,
+        carbs_g: profile.macros?.carbs || 250
       };
       
       console.log('MacroDashboard - Setting new daily goals:', newDailyGoals);
       setDailyGoals(newDailyGoals);
-    } else if (user) {
-      console.log('❌ User exists but no profile found, using default goals');
-      // User exists but no profile - this shouldn't happen but let's handle it
+    } else {
+      console.log('❌ No profile found, using default goals');
       setDailyGoals({
         calories: 2000,
         protein_g: 150,
         fat_g: 65,
         carbs_g: 250
       });
-    } else {
-      console.log('❌ No user found, using default goals');
     }
   }, [user]);
 
@@ -179,6 +189,21 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
             >
               <Dumbbell className="w-4 h-4 mr-2" />
               Workout Plan
+            </Button>
+            <Button 
+              onClick={() => {
+                console.log('Logout button clicked - calling onLogout');
+                if (onLogout) {
+                  onLogout();
+                } else {
+                  console.error('onLogout is not defined');
+                }
+              }}
+              variant="outline"
+              className="border-red-600 text-red-300 hover:bg-red-800"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
             </Button>
           </div>
         </div>
