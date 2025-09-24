@@ -1,5 +1,5 @@
-import { HeroSection } from '@/components/landing/hero-section';
+import App from '@/components/App';
 
-export default function Home() {
-  return <HeroSection />;
+export default function HomePage() {
+  return <App />;
 }

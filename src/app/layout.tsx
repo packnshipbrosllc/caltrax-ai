@@ -1,21 +1,10 @@
 import type { Metadata } from 'next';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
-import { ThemeProvider } from '@/contexts/theme-provider';
-import { StripeProvider } from '@/contexts/stripe-provider';
-import { AuthProvider } from '@/contexts/auth-provider';
-import { Inter } from 'next/font/google';
-
-
-// Configure Inter font with Latin subset for better performance
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter', // Optional: for CSS variable access
-});
 
 export const metadata: Metadata = {
-  title: 'Next.js 15 SaaS Boilerplate',
-  description: 'A modern SaaS boilerplate built with Next.js 15, TypeScript, and Tailwind CSS',
+  title: 'CalTrax - AI-Powered Calorie Tracking',
+  description: 'Track your calories, manage your macros, and achieve your fitness goals with AI-powered nutrition analysis.',
 };
 
 export default function RootLayout({
@@ -24,16 +13,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${inter.className} antialiased`}>
-      <body>
-        <ThemeProvider>
-          <AuthProvider>
-            <StripeProvider>
-              {children}
-            </StripeProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="theme-color" content="#000000" />
+        </head>
+        <body className="antialiased">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
