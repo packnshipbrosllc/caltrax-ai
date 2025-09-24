@@ -248,8 +248,8 @@ export default function UserProfile({ onComplete, user }) {
       // Add a delay for mobile browsers, especially Safari iOS
       setTimeout(() => {
         console.log('🔍 === USERPROFILE CALLING ONCOMPLETE ===');
-        console.log('Calling onComplete with:', updatedUser);
-        onComplete(updatedUser);
+        console.log('Calling onComplete with profile:', completeProfile);
+        onComplete(completeProfile);
         console.log('🔍 === USERPROFILE ONCOMPLETE CALLED ===');
       }, delay);
     }

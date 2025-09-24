@@ -91,7 +91,7 @@ function App() {
   const handleProfileComplete = (profile) => {
     console.log('Profile completed:', profile);
     const updatedUser = { ...user, profile };
-    setUser(updatedUser);
+    // setUser(updatedUser); // Clerk manages user state
     simpleStorage.setItem('caltrax-user', updatedUser);
     simpleStorage.setItem('caltrax-profile', profile);
     setProfileCompleted(true);
