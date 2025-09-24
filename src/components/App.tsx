@@ -1,8 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useUser, useAuth } from '@clerk/nextjs';
-import { SignIn, SignUp } from '@clerk/nextjs';
+import React, { useState, useEffect } from 'react';
 import { HeroSection } from './landing/hero-section';
 import UserProfile from './legacy/UserProfile';
 import MacroDashboard from './legacy/MacroDashboard';
@@ -16,24 +14,12 @@ import { simpleStorage } from '../lib/simpleStorage';
 import { authService } from '../services/authService';
 
 function App() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
-  const [currentView, setCurrentView] = useState('landing'); // 'landing', 'signup', 'signin', 'profile', 'app', 'dashboard', 'mealplan', 'workout', 'admin'
+  const [user, setUser] = useState(null);
+  const [currentView, setCurrentView] = useState('landing');
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState(false);
   const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
-
-  // Check if we're on the auth callback route
-  useEffect(() => {
-    if (window.location.pathname === '/auth/callback') {
-      setCurrentView('auth-callback');
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Track if we've already initialized to prevent re-initialization
-  const hasInitialized = useRef(false);
 
   // Initialize app
   useEffect(() => {
@@ -65,12 +51,11 @@ function App() {
 
   const handleSignUp = (userData) => {
     console.log('Handling sign up:', userData);
-    // Create a mock user object for development
     const mockUser = {
       id: 'mock-user-' + Date.now(),
       email: userData.email || 'test@example.com',
       name: userData.name || 'Test User',
-      profile: null // Will be set when profile is completed
+      profile: null
     };
     setUser(mockUser);
     simpleStorage.setItem('caltrax-user', mockUser);
@@ -79,7 +64,6 @@ function App() {
 
   const handleSignIn = (userData) => {
     console.log('Handling sign in:', userData);
-    // Create a mock user object for development
     const mockUser = {
       id: 'mock-user-' + Date.now(),
       email: userData.email || 'test@example.com',
@@ -102,35 +86,31 @@ function App() {
     const updatedUser = { ...user, profile };
     setUser(updatedUser);
     simpleStorage.setItem('caltrax-user', updatedUser);
+    simpleStorage.setItem('caltrax-profile', profile);
     setProfileCompleted(true);
     setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
-    console.log('Logging out user');
+    console.log('Logging out...');
     setUser(null);
-    setProfileCompleted(false);
     simpleStorage.removeItem('caltrax-user');
+    simpleStorage.removeItem('caltrax-profile');
+    setProfileCompleted(false);
     setCurrentView('landing');
   };
 
   const handleAdminAccess = () => {
-    if (hasAdminAccess(user)) {
+    if (hasAdminAccess(user?.email)) {
       setCurrentView('admin');
     } else {
       setShowAdminLogin(true);
     }
   };
 
-  const handleAdminLogin = (adminData) => {
-    console.log('Admin login successful:', adminData);
-    setUser({ ...user, ...adminData, isAdmin: true });
+  const handleAdminLogin = () => {
     setShowAdminLogin(false);
     setCurrentView('admin');
-  };
-
-  const handleSubscriptionManagement = () => {
-    setShowSubscriptionManagement(true);
   };
 
   const handleCloseSubscriptionManagement = () => {
@@ -140,10 +120,7 @@ function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-100">
-        <div className="text-center">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="mt-4 text-base-content/70">Loading CalTrax...</p>
-        </div>
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
@@ -158,30 +135,73 @@ function App() {
         />
       )}
       
-          {currentView === 'signup' && (
-            <div className="min-h-screen flex items-center justify-center bg-base-100">
-              <div className="w-full max-w-md">
-                <SignUp 
-                  routing="hash"
-                  afterSignUpUrl="/"
-                  afterSignInUrl="/"
-                />
+      {currentView === 'signup' && (
+        <div className="min-h-screen flex items-center justify-center bg-base-100">
+          <div className="w-full max-w-md">
+            <div className="card bg-base-200 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title">Sign Up</h2>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Email</span>
+                  </label>
+                  <input type="email" placeholder="Enter your email" className="input input-bordered" />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Password</span>
+                  </label>
+                  <input type="password" placeholder="Enter your password" className="input input-bordered" />
+                </div>
+                <div className="form-control mt-6">
+                  <button className="btn btn-primary" onClick={() => handleSignUp({email: 'test@example.com', name: 'Test User'})}>
+                    Sign Up
+                  </button>
+                </div>
+                <div className="text-center mt-4">
+                  <button className="link" onClick={() => setCurrentView('signin')}>
+                    Already have an account? Sign In
+                  </button>
+                </div>
               </div>
             </div>
-          )}
-          
-          {currentView === 'signin' && (
-            <div className="min-h-screen flex items-center justify-center bg-base-100">
-              <div className="w-full max-w-md">
-                <SignIn 
-                  routing="hash"
-                  afterSignInUrl="/"
-                  afterSignUpUrl="/"
-                />
-              </div>
-            </div>
-          )}
+          </div>
+        </div>
+      )}
       
+      {currentView === 'signin' && (
+        <div className="min-h-screen flex items-center justify-center bg-base-100">
+          <div className="w-full max-w-md">
+            <div className="card bg-base-200 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title">Sign In</h2>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Email</span>
+                  </label>
+                  <input type="email" placeholder="Enter your email" className="input input-bordered" />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Password</span>
+                  </label>
+                  <input type="password" placeholder="Enter your password" className="input input-bordered" />
+                </div>
+                <div className="form-control mt-6">
+                  <button className="btn btn-primary" onClick={() => handleSignIn({email: 'test@example.com', name: 'Test User'})}>
+                    Sign In
+                  </button>
+                </div>
+                <div className="text-center mt-4">
+                  <button className="link" onClick={() => setCurrentView('signup')}>
+                    Don't have an account? Sign Up
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {currentView === 'profile' && (
         <UserProfile 
