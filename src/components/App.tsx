@@ -25,6 +25,7 @@ function App() {
   const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [profileCheckAttempts, setProfileCheckAttempts] = useState(0);
 
   // Check subscription status
   const checkSubscriptionStatus = async (userId) => {
@@ -39,22 +40,16 @@ function App() {
       const storedProfile = simpleStorage.getItem('caltrax-profile');
       const hasCompletedSetup = !!(clerkProfile || storedProfile);
       
-      // TEMPORARILY: Allow access without payment for testing
-      // In production, this should check Stripe subscription status
-      console.log('🔍 TEMPORARY: Allowing access without payment for testing');
-      setHasActiveSubscription(true);
-      return true;
-      
-      // PRODUCTION CODE (commented out for now):
-      // if (hasCompletedSetup) {
-      //   console.log('✅ User has completed setup - allowing access');
-      //   setHasActiveSubscription(true);
-      //   return true;
-      // } else {
-      //   console.log('❌ User needs to complete payment and setup');
-      //   setHasActiveSubscription(false);
-      //   return false;
-      // }
+      // Check if user has completed payment/subscription
+      if (hasCompletedSetup) {
+        console.log('✅ User has completed setup - allowing access');
+        setHasActiveSubscription(true);
+        return true;
+      } else {
+        console.log('❌ User needs to complete payment and setup');
+        setHasActiveSubscription(false);
+        return false;
+      }
     } catch (error) {
       console.error('❌ Error checking subscription status:', error);
       setHasActiveSubscription(false);
@@ -98,28 +93,44 @@ function App() {
           console.log('User signed in with Clerk:', user);
           console.log('User publicMetadata:', user.publicMetadata);
           
-          // Check subscription status first
-          checkSubscriptionStatus(user.id).then((hasSubscription) => {
-            if (hasSubscription) {
-              // Check if profile is completed in Clerk metadata or local storage
-              const clerkProfile = user.publicMetadata?.caltraxProfile;
-              const storedProfile = simpleStorage.getItem('caltrax-profile');
-              const profile = clerkProfile || storedProfile;
-              
-              if (profile) {
-                console.log('Profile completed, going to dashboard');
-                console.log('Profile data:', profile);
-                setProfileCompleted(true);
-                setCurrentView('dashboard');
-              } else {
-                console.log('Profile not completed, going to profile setup');
-                setCurrentView('profile');
-              }
+          // Check if user has completed payment first
+          const hasPaid = user.publicMetadata?.hasPaid || simpleStorage.getItem('caltrax-has-paid');
+          console.log('🔍 Payment check:');
+          console.log('  - hasPaid from metadata:', user.publicMetadata?.hasPaid);
+          console.log('  - hasPaid from storage:', simpleStorage.getItem('caltrax-has-paid'));
+          console.log('  - final hasPaid:', hasPaid);
+          
+          if (hasPaid) {
+            // User has paid, check if profile is completed
+            const clerkProfile = user.publicMetadata?.caltraxProfile;
+            const storedProfile = simpleStorage.getItem('caltrax-profile');
+            const profile = clerkProfile || storedProfile;
+            
+            console.log('🔍 Profile check:');
+            console.log('  - clerkProfile:', clerkProfile);
+            console.log('  - storedProfile:', storedProfile);
+            console.log('  - final profile:', profile);
+            console.log('  - profile has calories:', profile?.calories);
+            console.log('  - profile has macros:', profile?.macros);
+            
+            if (profile && profile.calories && profile.macros) {
+              console.log('✅ Profile completed with valid data, going to dashboard');
+              console.log('Profile data:', profile);
+              setProfileCompleted(true);
+              setCurrentView('dashboard');
             } else {
-              console.log('No active subscription, going to payment');
-              setCurrentView('payment');
+              console.log('❌ Profile not completed or missing data, going to profile setup');
+              console.log('Missing data:', {
+                hasProfile: !!profile,
+                hasCalories: !!profile?.calories,
+                hasMacros: !!profile?.macros
+              });
+              setCurrentView('profile');
             }
-          });
+          } else {
+            console.log('❌ User has not paid, going to payment');
+            setCurrentView('payment');
+          }
         } else {
           // User is not signed in
           console.log('User not signed in, staying on landing page');
@@ -175,7 +186,8 @@ function App() {
         
         const updatedMetadata = {
           ...user.publicMetadata,
-          caltraxProfile: profile
+          caltraxProfile: profile,
+          hasPaid: true // Mark as paid when profile is completed
         };
         
         console.log('Updated metadata:', updatedMetadata);
@@ -186,6 +198,12 @@ function App() {
         
         console.log('✅ Profile saved to Clerk user metadata');
         console.log('Verification - user.publicMetadata after update:', user.publicMetadata);
+        
+        // Force refresh the user data to ensure it's updated
+        console.log('🔄 Refreshing user data...');
+        await user.reload();
+        console.log('✅ User data refreshed');
+        console.log('Updated user.publicMetadata:', user.publicMetadata);
       } else {
         console.log('❌ No user object available for metadata update');
       }
@@ -271,8 +289,27 @@ function App() {
     setShowSubscriptionManagement(false);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     console.log('✅ Payment successful, setting subscription as active');
+    
+    // Mark user as having paid in Clerk metadata
+    if (user) {
+      try {
+        await user.update({
+          publicMetadata: {
+            ...user.publicMetadata,
+            hasPaid: true
+          }
+        });
+        console.log('✅ Payment status saved to Clerk metadata');
+      } catch (error) {
+        console.error('❌ Failed to save payment status to Clerk:', error);
+      }
+    }
+    
+    // Also save to local storage as backup
+    simpleStorage.setItem('caltrax-has-paid', true);
+    
     setHasActiveSubscription(true);
     setCurrentView('profile');
   };
