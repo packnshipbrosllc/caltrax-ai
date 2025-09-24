@@ -10,7 +10,8 @@ import {
   ArrowLeft,
   Utensils,
   Dumbbell,
-  LogOut
+  LogOut,
+  CreditCard
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -36,7 +37,7 @@ const getProgressColor = (percentage) => {
   return 'text-red-400';
 };
 
-export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onShowWorkout, onLogout, user }) {
+export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onShowWorkout, onLogout, onShowSubscriptionManagement, user }) {
   const [view, setView] = useState('today'); // 'today' or 'week'
   const [todayData, setTodayData] = useState(null);
   const [weekData, setWeekData] = useState(null);
@@ -189,6 +190,23 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
             >
               <Dumbbell className="w-4 h-4 mr-2" />
               Workout Plan
+            </Button>
+            <Button 
+              onClick={() => {
+                console.log('🔍 === SUBSCRIPTION MANAGEMENT BUTTON CLICKED ===');
+                console.log('onShowSubscriptionManagement function:', onShowSubscriptionManagement);
+                if (onShowSubscriptionManagement) {
+                  console.log('Calling onShowSubscriptionManagement...');
+                  onShowSubscriptionManagement();
+                } else {
+                  console.error('❌ onShowSubscriptionManagement is not defined');
+                }
+              }}
+              variant="outline"
+              className="border-green-600 text-green-300 hover:bg-green-800"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscription
             </Button>
             <Button 
               onClick={() => {

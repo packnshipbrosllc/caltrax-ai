@@ -23,6 +23,39 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState(false);
   const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+
+  // Check subscription status
+  const checkSubscriptionStatus = async (userId) => {
+    try {
+      setSubscriptionLoading(true);
+      console.log('🔍 Checking subscription status for user:', userId);
+      
+      // Check if user has completed payment/subscription
+      // For now, we'll check if user has a profile (indicating they've completed payment + setup)
+      // In production, this would check Stripe subscription status
+      const clerkProfile = user?.publicMetadata?.caltraxProfile;
+      const storedProfile = simpleStorage.getItem('caltrax-profile');
+      const hasCompletedSetup = !!(clerkProfile || storedProfile);
+      
+      if (hasCompletedSetup) {
+        console.log('✅ User has completed setup - allowing access');
+        setHasActiveSubscription(true);
+        return true;
+      } else {
+        console.log('❌ User needs to complete payment and setup');
+        setHasActiveSubscription(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error checking subscription status:', error);
+      setHasActiveSubscription(false);
+      return false;
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
 
   // Initialize app when Clerk user state changes
   useEffect(() => {
@@ -38,20 +71,28 @@ function App() {
           console.log('User signed in with Clerk:', user);
           console.log('User publicMetadata:', user.publicMetadata);
           
-          // Check if profile is completed in Clerk metadata or local storage
-          const clerkProfile = user.publicMetadata?.caltraxProfile;
-          const storedProfile = simpleStorage.getItem('caltrax-profile');
-          const profile = clerkProfile || storedProfile;
-          
-          if (profile) {
-            console.log('Profile completed, going to dashboard');
-            console.log('Profile data:', profile);
-            setProfileCompleted(true);
-            setCurrentView('dashboard');
-          } else {
-            console.log('Profile not completed, going to profile setup');
-            setCurrentView('profile');
-          }
+          // Check subscription status first
+          checkSubscriptionStatus(user.id).then((hasSubscription) => {
+            if (hasSubscription) {
+              // Check if profile is completed in Clerk metadata or local storage
+              const clerkProfile = user.publicMetadata?.caltraxProfile;
+              const storedProfile = simpleStorage.getItem('caltrax-profile');
+              const profile = clerkProfile || storedProfile;
+              
+              if (profile) {
+                console.log('Profile completed, going to dashboard');
+                console.log('Profile data:', profile);
+                setProfileCompleted(true);
+                setCurrentView('dashboard');
+              } else {
+                console.log('Profile not completed, going to profile setup');
+                setCurrentView('profile');
+              }
+            } else {
+              console.log('No active subscription, going to payment');
+              setCurrentView('payment');
+            }
+          });
         } else {
           // User is not signed in
           console.log('User not signed in, staying on landing page');
@@ -119,6 +160,9 @@ function App() {
       console.log('Setting profile completed to true');
       setProfileCompleted(true);
       
+      // Set subscription as active after profile completion
+      setHasActiveSubscription(true);
+      
       console.log('Setting current view to dashboard');
       setCurrentView('dashboard');
       
@@ -130,6 +174,7 @@ function App() {
       simpleStorage.setItem('caltrax-user', updatedUser);
       simpleStorage.setItem('caltrax-profile', profile);
       setProfileCompleted(true);
+      setHasActiveSubscription(true);
       setCurrentView('dashboard');
     }
   };
@@ -175,6 +220,12 @@ function App() {
     setShowSubscriptionManagement(false);
   };
 
+  const handlePaymentSuccess = () => {
+    console.log('✅ Payment successful, setting subscription as active');
+    setHasActiveSubscription(true);
+    setCurrentView('profile');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-100">
@@ -217,6 +268,23 @@ function App() {
         </div>
       )}
       
+      {currentView === 'payment' && (
+        <div className="min-h-screen flex items-center justify-center bg-base-100">
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Complete Your Subscription</h1>
+              <p className="text-lg text-base-content/70">
+                Start your 3-day free trial and unlock all CalTrax AI features
+              </p>
+            </div>
+            <StripePaymentForm 
+              onSuccess={handlePaymentSuccess}
+              onCancel={() => setCurrentView('landing')}
+            />
+          </div>
+        </div>
+      )}
+      
       {currentView === 'profile' && (
         <UserProfile 
           onComplete={handleProfileComplete}
@@ -235,6 +303,7 @@ function App() {
             onShowMealPlan={() => setCurrentView('mealplan')}
             onShowWorkout={() => setCurrentView('workout')}
             onLogout={handleLogout}
+            onShowSubscriptionManagement={() => setShowSubscriptionManagement(true)}
             user={user}
           />
         </>
