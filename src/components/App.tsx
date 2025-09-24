@@ -135,12 +135,27 @@ function App() {
   };
 
   const handleLogout = async () => {
-    console.log('Logging out...');
-    await signOut();
+    console.log('🔍 === HANDLE LOGOUT CALLED ===');
+    console.log('Current user:', user);
+    console.log('SignOut function:', signOut);
+    
+    try {
+      console.log('Calling signOut...');
+      await signOut();
+      console.log('✅ SignOut successful');
+    } catch (error) {
+      console.error('❌ SignOut failed:', error);
+    }
+    
+    console.log('Clearing local storage...');
     simpleStorage.removeItem('caltrax-user');
     simpleStorage.removeItem('caltrax-profile');
+    
+    console.log('Resetting app state...');
     setProfileCompleted(false);
     setCurrentView('landing');
+    
+    console.log('🔍 === LOGOUT COMPLETE ===');
   };
 
   const handleAdminAccess = () => {

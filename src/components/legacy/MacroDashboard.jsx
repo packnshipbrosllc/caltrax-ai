@@ -192,11 +192,13 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
             </Button>
             <Button 
               onClick={() => {
-                console.log('Logout button clicked - calling onLogout');
+                console.log('🔍 === MACRODASHBOARD LOGOUT BUTTON CLICKED ===');
+                console.log('onLogout function:', onLogout);
                 if (onLogout) {
+                  console.log('Calling onLogout...');
                   onLogout();
                 } else {
-                  console.error('onLogout is not defined');
+                  console.error('❌ onLogout is not defined');
                 }
               }}
               variant="outline"
