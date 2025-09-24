@@ -150,7 +150,7 @@ export default function UserProfile({ onComplete, user }) {
     };
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     console.log('🔍 === HANDLE NEXT CALLED ===');
     console.log('Current step:', step);
     console.log('Profile data:', profileData);
@@ -182,23 +182,18 @@ export default function UserProfile({ onComplete, user }) {
       console.log('Profile completed - updatedUser:', updatedUser);
       
       // Save to Supabase first
-      const saveToSupabase = async () => {
-        try {
-          if (user?.id) {
-            console.log('Saving profile to Supabase...', completeProfile);
-            await authService.updateProfile(user.id, completeProfile);
-            console.log('✅ Profile saved to Supabase successfully');
-          } else {
-            console.log('❌ No user ID found, cannot save to Supabase');
-          }
-        } catch (error) {
-          console.error('❌ Failed to save profile to Supabase:', error);
-          console.log('Falling back to local storage...');
+      try {
+        if (user?.id) {
+          console.log('Saving profile to Supabase...', completeProfile);
+          await authService.updateProfile(user.id, completeProfile);
+          console.log('✅ Profile saved to Supabase successfully');
+        } else {
+          console.log('❌ No user ID found, cannot save to Supabase');
         }
-      };
-      
-      // Save to Supabase
-      await saveToSupabase();
+      } catch (error) {
+        console.error('❌ Failed to save profile to Supabase:', error);
+        console.log('Falling back to local storage...');
+      }
       
       // Also save to local storage as backup
       const saveSuccess = simpleStorage.setItem('caltrax-user', updatedUser);
