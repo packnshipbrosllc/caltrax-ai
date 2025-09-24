@@ -32,41 +32,54 @@ export const saveMacroData = (data) => {
 };
 
 export const addFoodEntry = (foodData) => {
-  const today = getTodayDate();
-  const macroData = getMacroData();
-  
-  if (!macroData[today]) {
-    macroData[today] = {
-      date: today,
-      entries: [],
-      totals: {
-        calories: 0,
-        protein_g: 0,
-        fat_g: 0,
-        carbs_g: 0
-      }
+  try {
+    console.log('🔍 addFoodEntry called with:', foodData);
+    
+    if (!foodData || !foodData.name || !foodData.nutrition) {
+      console.error('❌ Invalid food data provided to addFoodEntry:', foodData);
+      return null;
+    }
+    
+    const today = getTodayDate();
+    const macroData = getMacroData();
+    
+    if (!macroData[today]) {
+      macroData[today] = {
+        date: today,
+        entries: [],
+        totals: {
+          calories: 0,
+          protein_g: 0,
+          fat_g: 0,
+          carbs_g: 0
+        }
+      };
+    }
+    
+    const entry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      name: foodData.name,
+      nutrition: foodData.nutrition,
+      healthScore: foodData.score || 0,
+      confidence: foodData.confidence || 0
     };
+    
+    macroData[today].entries.push(entry);
+    
+    // Update totals
+    macroData[today].totals.calories += foodData.nutrition.calories || 0;
+    macroData[today].totals.protein_g += foodData.nutrition.protein_g || 0;
+    macroData[today].totals.fat_g += foodData.nutrition.fat_g || 0;
+    macroData[today].totals.carbs_g += foodData.nutrition.carbs_g || 0;
+    
+    saveMacroData(macroData);
+    console.log('✅ Food entry added successfully:', entry);
+    return entry;
+  } catch (error) {
+    console.error('❌ Error in addFoodEntry:', error);
+    return null;
   }
-  
-  const entry = {
-    id: Date.now().toString(),
-    timestamp: new Date().toISOString(),
-    name: foodData.name,
-    nutrition: foodData.nutrition,
-    healthScore: foodData.score || 0,
-    confidence: foodData.confidence || 0
-  };
-  
-  macroData[today].entries.push(entry);
-  
-  // Update totals
-  macroData[today].totals.calories += foodData.nutrition.calories || 0;
-  macroData[today].totals.protein_g += foodData.nutrition.protein_g || 0;
-  macroData[today].totals.fat_g += foodData.nutrition.fat_g || 0;
-  macroData[today].totals.carbs_g += foodData.nutrition.carbs_g || 0;
-  
-  saveMacroData(macroData);
-  return entry;
 };
 
 export const getTodayMacros = () => {

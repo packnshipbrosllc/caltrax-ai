@@ -62,12 +62,16 @@ function App() {
   // Handle decryption errors and clear corrupted data
   useEffect(() => {
     const handleStorageError = (e) => {
-      if (e.message && e.message.includes('Decryption error')) {
+      // Only handle specific decryption errors, not all errors
+      if (e.message && e.message.includes('Decryption error') && e.message.includes('Malformed UTF-8')) {
         console.warn('🚨 Decryption error detected, clearing all data');
         clearAllCalTraxData();
         setCurrentView('landing');
         setProfileCompleted(false);
         setHasActiveSubscription(false);
+      } else {
+        // Log other errors but don't clear data
+        console.warn('⚠️ Error caught but not clearing data:', e.message);
       }
     };
 
