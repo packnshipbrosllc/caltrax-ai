@@ -64,6 +64,7 @@ export default function PaymentPage({ onSuccess, onCancel }) {
       console.log('Processing signup with payment:', { email, selectedPlan, cardNumber: cardNumber.substring(0, 4) + '****' });
       
       // Create payment intent for ALL plans (including trial)
+      console.log('Making API call to create payment intent...');
       const response = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -75,9 +76,14 @@ export default function PaymentPage({ onSuccess, onCancel }) {
         }),
       });
 
-      const { success, clientSecret, error: apiError } = await response.json();
+      console.log('API response status:', response.status);
+      const responseData = await response.json();
+      console.log('API response data:', responseData);
+
+      const { success, clientSecret, error: apiError } = responseData;
 
       if (!success || apiError) {
+        console.error('API error:', apiError);
         throw new Error(apiError || 'Failed to create payment intent');
       }
 
