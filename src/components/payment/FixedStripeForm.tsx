@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '../legacy/ui/Button';
@@ -17,7 +17,6 @@ const cardElementOptions = {
       '::placeholder': {
         color: '#9ca3af',
       },
-      backgroundColor: 'transparent',
     },
     invalid: {
       color: '#ef4444',
@@ -31,7 +30,7 @@ const cardElementOptions = {
   hidePostalCode: true,
 };
 
-interface RealWorkingStripeFormProps {
+interface FixedStripeFormProps {
   selectedPlan: string;
   email: string;
   userId: string;
@@ -39,17 +38,26 @@ interface RealWorkingStripeFormProps {
   onError: (error: string) => void;
 }
 
-function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWorkingStripeFormProps) {
+function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: FixedStripeFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isStripeLoaded, setIsStripeLoaded] = useState(false);
+
+  // Check if Stripe is loaded
+  useEffect(() => {
+    if (stripe && elements) {
+      setIsStripeLoaded(true);
+    }
+  }, [stripe, elements]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!stripe || !elements) {
+      setError('Stripe is not loaded yet. Please wait and try again.');
       return;
     }
 
@@ -72,8 +80,6 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
         }),
       });
 
-      console.log('Customer response status:', customerResponse.status);
-      
       if (!customerResponse.ok) {
         const errorText = await customerResponse.text();
         console.error('Customer creation failed:', errorText);
@@ -86,6 +92,10 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
 
       // Step 2: Create payment method
       const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error('Card element not found. Please try again.');
+      }
+
       const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
         type: 'card',
         card: cardElement,
@@ -115,19 +125,16 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
         }),
       });
 
-      console.log('Subscription response status:', subscriptionResponse.status);
-
       if (!subscriptionResponse.ok) {
         const errorText = await subscriptionResponse.text();
         console.error('Subscription creation failed:', errorText);
-        console.error('Response status:', subscriptionResponse.status);
-        throw new Error(`Failed to create subscription (${subscriptionResponse.status}): ${errorText}`);
+        throw new Error(`Failed to create subscription: ${errorText}`);
       }
 
       const subscriptionData = await subscriptionResponse.json();
       console.log('Subscription created:', subscriptionData);
 
-      // Step 4: Handle payment confirmation (all plans have 3-day trial)
+      // Step 4: Handle payment confirmation
       if (subscriptionData.clientSecret) {
         console.log('Confirming payment...');
         const { error: confirmError } = await stripe.confirmCardPayment(subscriptionData.clientSecret);
@@ -190,11 +197,23 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
         <label className="block text-sm font-medium text-zinc-300 mb-2">
           Card Details
         </label>
-        <div className="p-4 bg-zinc-900 border border-zinc-600 rounded-lg min-h-[50px]">
-          <CardElement 
-            options={cardElementOptions}
-            className="stripe-card-element"
-          />
+        <div 
+          className="p-4 bg-zinc-900 border border-zinc-600 rounded-lg"
+          style={{ 
+            minHeight: '60px', 
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          {isStripeLoaded ? (
+            <CardElement 
+              options={cardElementOptions}
+              className="w-full"
+            />
+          ) : (
+            <div className="text-zinc-400 text-sm">Loading payment form...</div>
+          )}
         </div>
       </div>
 
@@ -211,8 +230,8 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
 
       <Button
         type="submit"
-        disabled={!stripe || isProcessing}
-        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg py-3"
+        disabled={!stripe || isProcessing || !isStripeLoaded}
+        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg py-3 disabled:opacity-50"
       >
         {isProcessing ? (
           <div className="flex items-center justify-center">
@@ -227,39 +246,16 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealWo
   );
 }
 
-export default function RealWorkingStripeForm({ selectedPlan, email, userId, onSuccess, onError }: RealWorkingStripeFormProps) {
+export default function FixedStripeForm({ selectedPlan, email, userId, onSuccess, onError }: FixedStripeFormProps) {
   return (
-    <>
-      <style jsx global>{`
-        .stripe-card-element {
-          width: 100%;
-          padding: 12px;
-        }
-        .StripeElement {
-          width: 100%;
-          padding: 12px;
-          background: transparent;
-        }
-        .StripeElement--focus {
-          outline: none;
-          box-shadow: 0 0 0 2px #3b82f6;
-        }
-        .StripeElement--invalid {
-          border-color: #ef4444;
-        }
-        .StripeElement--complete {
-          border-color: #10b981;
-        }
-      `}</style>
-      <Elements stripe={stripePromise}>
-        <PaymentForm 
-          selectedPlan={selectedPlan}
-          email={email}
-          userId={userId}
-          onSuccess={onSuccess}
-          onError={onError}
-        />
-      </Elements>
-    </>
+    <Elements stripe={stripePromise}>
+      <PaymentForm 
+        selectedPlan={selectedPlan}
+        email={email}
+        userId={userId}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    </Elements>
   );
 }
