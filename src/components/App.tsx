@@ -85,6 +85,14 @@ function App() {
     };
   }, []);
 
+  // Clear any existing payment data to force payment
+  useEffect(() => {
+    // Clear old payment data to ensure users must pay
+    simpleStorage.removeItem('caltrax-has-paid');
+    simpleStorage.removeItem('caltrax-payment-date');
+    simpleStorage.removeItem('caltrax-plan');
+  }, []);
+
   // Initialize app when Clerk user state changes
   useEffect(() => {
     if (!isLoaded) {
@@ -212,8 +220,8 @@ function App() {
         
         const updatedMetadata = {
           ...user.publicMetadata,
-          caltraxProfile: profile,
-          hasPaid: true // Mark as paid when profile is completed
+          caltraxProfile: profile
+          // Don't mark as paid here - payment should happen first
         };
         
         console.log('Updated metadata:', updatedMetadata);
@@ -248,8 +256,7 @@ function App() {
       simpleStorage.setItem('caltrax-user', updatedUser);
       simpleStorage.setItem('caltrax-profile', profile);
       
-      // Mark as paid in local storage too
-      simpleStorage.setItem('caltrax-has-paid', true);
+      // Don't mark as paid here - payment should happen first
       
       console.log('✅ Profile saved to local storage');
       console.log('Setting profile completed to true');
@@ -268,7 +275,7 @@ function App() {
       const updatedUser = { ...user, profile };
       simpleStorage.setItem('caltrax-user', updatedUser);
       simpleStorage.setItem('caltrax-profile', profile);
-      simpleStorage.setItem('caltrax-has-paid', true);
+      // Don't mark as paid here - payment should happen first
       
       console.log('✅ Profile saved to local storage (fallback)');
       setProfileCompleted(true);
