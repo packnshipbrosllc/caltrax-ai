@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Stripe inside the function to avoid build-time issues
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY environment variable is not set');
+      return NextResponse.json(
+        { error: 'Payment service not configured' },
+        { status: 500 }
+      );
+    }
+
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2024-06-20',
+    });
+
     const { plan, email } = await request.json();
     
     console.log('Creating payment intent for plan:', plan, 'email:', email);
