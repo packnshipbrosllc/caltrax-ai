@@ -337,6 +337,7 @@ function App() {
         const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
         const userId = user.id;
         
+        console.log('💾 Saving payment to database...');
         await createOrUpdateUser({
           clerk_user_id: userId,
           email: email,
@@ -350,6 +351,7 @@ function App() {
         console.log('✅ Payment status saved to database');
         
         // Also update Clerk metadata as backup
+        console.log('💾 Saving payment to Clerk metadata...');
         await user.update({
           unsafeMetadata: {
             ...user.unsafeMetadata,
@@ -362,16 +364,27 @@ function App() {
         console.log('✅ Payment status saved to Clerk metadata');
       } catch (error) {
         console.error('❌ Failed to save payment status:', error);
+        // Continue anyway - we have local storage backup
       }
     }
     
     // Also save to local storage as backup
+    console.log('💾 Saving payment to local storage...');
     simpleStorage.setItem('caltrax-has-paid', true);
     simpleStorage.setItem('caltrax-payment-date', new Date().toISOString());
     simpleStorage.setItem('caltrax-plan', paymentData?.plan || 'trial');
     
+    console.log('✅ Payment data saved to all locations');
+    
+    // Set states
     setHasActiveSubscription(true);
-    setCurrentView('profile');
+    
+    // Add a small delay to ensure database updates are processed
+    console.log('⏳ Redirecting to profile in 1 second...');
+    setTimeout(() => {
+      console.log('🔄 Redirecting to profile page');
+      setCurrentView('profile');
+    }, 1000);
   };
 
   // Migrate old profile data from localStorage
