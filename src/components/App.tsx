@@ -586,6 +586,7 @@ function App() {
         <PaymentPage 
           onSuccess={handlePaymentSuccess}
           onCancel={() => setCurrentView('landing')}
+          user={user}
         />
       )}
       

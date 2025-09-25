@@ -5,16 +5,17 @@ import { Button } from '../legacy/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../legacy/ui/Card';
 import StripePaymentForm from './StripePaymentForm';
 
-export default function PaymentPage({ onSuccess, onCancel }) {
+export default function PaymentPage({ onSuccess, onCancel, user }) {
   const [selectedPlan, setSelectedPlan] = useState('trial');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Get email from Clerk user
+  const email = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || '';
 
   const plans = [
     {
@@ -52,7 +53,7 @@ export default function PaymentPage({ onSuccess, onCancel }) {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    if (!email || !password || !cardName || !cardNumber || !expiryDate || !cvv) {
+    if (!email || !cardName || !cardNumber || !expiryDate || !cvv) {
       setError('Please fill in all required fields');
       return;
     }
@@ -92,15 +93,36 @@ export default function PaymentPage({ onSuccess, onCancel }) {
         console.log('Trial signup successful - payment method saved for future billing');
         onSuccess({ email, plan: selectedPlan, trial: true });
       } else {
-        // For paid plans, process payment immediately
+        // For paid plans, we need to actually process the payment
         if (!clientSecret) {
           throw new Error('No client secret received');
         }
 
-        // Here you would integrate with Stripe Elements to confirm payment
-        // For now, we'll simulate successful payment
-        console.log('Payment processed successfully for plan:', selectedPlan);
-        onSuccess({ email, plan: selectedPlan, paymentProcessed: true });
+        // TODO: Integrate with Stripe Elements to confirm payment
+        // For now, we'll validate the card format and simulate payment
+        const cleanCardNumber = cardNumber.replace(/\s/g, '');
+        const expiryMonth = expiryDate.split('/')[0];
+        const expiryYear = '20' + expiryDate.split('/')[1];
+        
+        // Basic validation
+        if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19) {
+          throw new Error('Invalid card number');
+        }
+        if (cvv.length < 3 || cvv.length > 4) {
+          throw new Error('Invalid CVV');
+        }
+        if (!expiryMonth || !expiryYear || expiryMonth.length !== 2 || expiryYear.length !== 4) {
+          throw new Error('Invalid expiry date');
+        }
+        
+        // Check if card number is a test card
+        const testCards = ['4242424242424242', '4000000000000002', '4000000000009995'];
+        if (testCards.includes(cleanCardNumber)) {
+          console.log('Test card detected - simulating successful payment');
+          onSuccess({ email, plan: selectedPlan, paymentProcessed: true, testCard: true });
+        } else {
+          throw new Error('Please use a valid test card: 4242 4242 4242 4242');
+        }
       }
       
     } catch (err) {
@@ -238,36 +260,13 @@ export default function PaymentPage({ onSuccess, onCancel }) {
         >
           <Card className="bg-zinc-800/50 border-zinc-700">
             <CardHeader>
-              <CardTitle className="text-center text-2xl">Create Your Account</CardTitle>
+              <CardTitle className="text-center text-2xl">Complete Your Subscription</CardTitle>
+              <div className="text-center text-sm text-zinc-400">
+                Signed in as: {email}
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSignup} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Create a password"
-                  />
-                </div>
 
                 {/* Credit Card Information - Required for ALL plans */}
                 <div className="space-y-4 pt-4 border-t border-zinc-700">
