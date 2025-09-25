@@ -8,105 +8,84 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const signature = request.headers.get('stripe-signature')!;
-
-  let event: Stripe.Event;
-
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
+    const body = await request.text();
+    const signature = request.headers.get('stripe-signature');
 
-  console.log('Received webhook event:', event.type);
+    console.log('Webhook received:');
+    console.log('Body length:', body.length);
+    console.log('Signature present:', !!signature);
+    console.log('Webhook secret present:', !!webhookSecret);
 
-  try {
-    // Only process database updates if Supabase is configured
-    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (hasSupabase) {
-      // Dynamically import database functions only when needed
-      const { createOrUpdateUser, updateUserPayment, markTrialUsed } = await import('@/lib/database');
+    if (!signature) {
+      console.error('No signature provided');
+      return NextResponse.json({ error: 'No signature provided' }, { status: 400 });
+    }
+
+    if (!webhookSecret) {
+      console.error('Webhook secret not configured');
+      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log('Webhook signature verified successfully');
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    console.log('Processing webhook event:', event.type);
+
+    try {
+      // For now, just log the event and return success
+      // We'll add database updates later once we confirm webhook is working
+      console.log('Event data:', JSON.stringify(event.data.object, null, 2));
       
       switch (event.type) {
-        case 'payment_intent.succeeded': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const { userId, plan, email } = paymentIntent.metadata;
-          
-          console.log('Payment succeeded:', { userId, plan, email });
-          
-          // Update user payment status
-          await updateUserPayment(
-            userId,
-            true,
-            plan as 'trial' | 'monthly' | 'yearly',
-            new Date().toISOString()
-          );
-          
-          // If it's a trial, mark trial as used
-          if (plan === 'trial') {
-            await markTrialUsed(userId);
-          }
-          
+        case 'payment_intent.succeeded':
+          console.log('Payment succeeded:', event.data.object);
           break;
-        }
-        
-        case 'customer.subscription.created': {
-          const subscription = event.data.object as Stripe.Subscription;
-          const { userId, plan, email } = subscription.metadata;
-          
-          console.log('Subscription created:', { userId, plan, email });
-          
-          // Update user payment status
-          await updateUserPayment(
-            userId,
-            true,
-            plan as 'monthly' | 'yearly',
-            new Date().toISOString()
-          );
-          
+        case 'customer.subscription.created':
+          console.log('Subscription created:', event.data.object);
           break;
-        }
-        
-        case 'customer.subscription.updated': {
-          const subscription = event.data.object as Stripe.Subscription;
-          const { userId } = subscription.metadata;
-          
-          console.log('Subscription updated:', subscription.id);
-          
-          // Handle subscription status changes
-          if (subscription.status === 'active') {
-            await updateUserPayment(userId, true, 'monthly', new Date().toISOString());
-          }
-          
+        case 'customer.subscription.updated':
+          console.log('Subscription updated:', event.data.object);
           break;
-        }
-        
-        case 'customer.subscription.deleted': {
-          const subscription = event.data.object as Stripe.Subscription;
-          const { userId } = subscription.metadata;
-          
-          console.log('Subscription cancelled:', subscription.id);
-          
-          // Mark user as not paid
-          await updateUserPayment(userId, false, null);
-          
+        case 'customer.subscription.deleted':
+          console.log('Subscription cancelled:', event.data.object);
           break;
-        }
-        
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }
-    } else {
-      console.log('Supabase not configured, skipping database updates');
-      console.log('Event type:', event.type);
-    }
 
-    return NextResponse.json({ received: true });
+      return NextResponse.json({ 
+        received: true, 
+        eventType: event.type,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Webhook handler error:', error);
+      return NextResponse.json({ 
+        error: 'Webhook handler failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
+    }
   } catch (error) {
-    console.error('Webhook handler error:', error);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
+    console.error('Webhook processing error:', error);
+    return NextResponse.json({ 
+      error: 'Webhook processing failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'Stripe webhook endpoint is working',
+    timestamp: new Date().toISOString(),
+    endpoint: '/api/stripe/webhook'
+  });
 }
