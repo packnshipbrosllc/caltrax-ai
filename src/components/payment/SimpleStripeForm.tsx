@@ -25,17 +25,11 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
     const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
+    for (let i = 0, len = v.length; i < len; i += 4) {
+      parts.push(v.substring(i, i + 4));
     }
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return v;
-    }
+    return parts.join(' ');
   };
 
   const formatExpiryDate = (value: string) => {
@@ -134,10 +128,19 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
 
       // For paid plans, confirm payment
       console.log('Confirming payment with Stripe...');
+      
+      const expiryParts = expiryDate.split('/');
+      const expMonth = parseInt(expiryParts[0]);
+      const expYear = parseInt('20' + expiryParts[1]);
+      
+      if (isNaN(expMonth) || isNaN(expYear)) {
+        throw new Error('Invalid expiry date format');
+      }
+
       console.log('Card details:', {
         number: cardNumber.replace(/\s/g, ''),
-        exp_month: parseInt(expiryDate.split('/')[0]),
-        exp_year: parseInt('20' + expiryDate.split('/')[1]),
+        exp_month: expMonth,
+        exp_year: expYear,
         cvc: cvv,
       });
 
@@ -147,8 +150,8 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
           payment_method: {
             card: {
               number: cardNumber.replace(/\s/g, ''),
-              exp_month: parseInt(expiryDate.split('/')[0]),
-              exp_year: parseInt('20' + expiryDate.split('/')[1]),
+              exp_month: expMonth,
+              exp_year: expYear,
               cvc: cvv,
             },
             billing_details: {
