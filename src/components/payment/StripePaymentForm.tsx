@@ -13,7 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../legacy/ui/Card';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 // Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+console.log('Stripe publishable key:', stripePublishableKey ? 'Set' : 'Not set');
+const stripePromise = loadStripe(stripePublishableKey!);
 
 const cardElementOptions = {
   style: {
@@ -45,6 +47,8 @@ function PaymentForm({ selectedPlan, email, onSuccess, onError }: PaymentFormPro
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  console.log('PaymentForm rendered with:', { selectedPlan, email, stripe: !!stripe, elements: !!elements });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -136,6 +140,9 @@ function PaymentForm({ selectedPlan, email, onSuccess, onError }: PaymentFormPro
     <Card className="bg-zinc-800/50 border-zinc-700">
       <CardHeader>
         <CardTitle className="text-center text-xl">Payment Information</CardTitle>
+        <div className="text-center text-sm text-zinc-400">
+          Plan: {selectedPlan} | Email: {email}
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -146,6 +153,14 @@ function PaymentForm({ selectedPlan, email, onSuccess, onError }: PaymentFormPro
               </label>
               <div className="p-4 bg-zinc-900 border border-zinc-600 rounded-lg">
                 <CardElement options={cardElementOptions} />
+              </div>
+            </div>
+          )}
+          
+          {selectedPlan === 'trial' && (
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className="text-blue-400 text-sm text-center">
+                🎉 Free trial - no payment required!
               </div>
             </div>
           )}
