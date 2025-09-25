@@ -120,16 +120,12 @@ export default function FoodLensDemo({ onLogout, onShowDashboard, onShowMealPlan
 
   useEffect(() => {
     console.log('🔍 === FOODLENSDEMO USEEFFECT DEBUG START ===');
-    // Check authentication on mount
-    const userData = simpleStorage.getItem('caltrax-user');
-    const hasSignedUp = simpleStorage.getItem('caltrax-signed-up');
+    console.log('FoodLensDemo - propUser:', propUser);
     
-    console.log('FoodLensDemo - userData:', userData);
-    console.log('FoodLensDemo - hasSignedUp:', hasSignedUp);
-    
-    if (userData && hasSignedUp) {
-      console.log('FoodLensDemo - User authenticated, setting up');
-      setUser(userData);
+    // Check authentication - use propUser from Clerk
+    if (propUser) {
+      console.log('FoodLensDemo - User authenticated via Clerk, setting up');
+      setUser(propUser);
       setIsAuthenticated(true);
       // No need to check subscription status for now
     } else {
