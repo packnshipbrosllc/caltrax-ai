@@ -68,20 +68,22 @@ export function HeroSection({ onGetStarted, onSignIn, onPricing }: HeroSectionPr
               <span className="text-xl font-bold">CalTrax AI</span>
       </div>
             <div className="flex gap-4">
-              <Button 
-                onClick={onGetStarted}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              >
-                Get Started
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button 
-                onClick={onSignIn}
-                variant="outline" 
-                className="border-white text-white hover:bg-white hover:text-gray-900"
-              >
-                Sign In
-              </Button>
+                  <Button 
+                    onClick={onGetStarted}
+                    disabled={false}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  >
+                    Get Started
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button 
+                    onClick={onSignIn}
+                    variant="outline" 
+                    disabled={false}
+                    className="border-white text-white hover:bg-white hover:text-gray-900"
+                  >
+                    Sign In
+                  </Button>
           </div>
           </div>
       </div>
@@ -130,25 +132,27 @@ export function HeroSection({ onGetStarted, onSignIn, onPricing }: HeroSectionPr
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <Button 
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4 shadow-2xl"
-                onClick={onGetStarted}
-              >
-                Start Analyzing Food
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              
-              {onSignIn && (
-                <Button 
-                  size="lg"
-                  variant="outline"
-                  className="text-lg px-8 py-4 border-zinc-600 hover:bg-zinc-800"
-                  onClick={onSignIn}
-                >
-                  Sign In
-                </Button>
-              )}
+                  <Button 
+                    size="lg"
+                    disabled={false}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4 shadow-2xl"
+                    onClick={onGetStarted}
+                  >
+                    Start Analyzing Food
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  
+                  {onSignIn && (
+                    <Button 
+                      size="lg"
+                      variant="outline"
+                      disabled={false}
+                      className="text-lg px-8 py-4 border-zinc-600 hover:bg-zinc-800"
+                      onClick={onSignIn}
+                    >
+                      Sign In
+                    </Button>
+                  )}
             </motion.div>
 
             <motion.div 
@@ -218,22 +222,24 @@ export function HeroSection({ onGetStarted, onSignIn, onPricing }: HeroSectionPr
               Join thousands of users who are already making smarter food choices with CalTrax AI
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={onGetStarted}
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
-              >
-                Start Your Journey
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button 
-                onClick={onSignIn}
-                variant="outline"
-                size="lg"
-                className="border-white text-white hover:bg-white hover:text-gray-900 text-lg px-8 py-4"
-              >
-                Sign In
-              </Button>
+                  <Button 
+                    onClick={onGetStarted}
+                    size="lg"
+                    disabled={false}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
+                  >
+                    Start Your Journey
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  <Button 
+                    onClick={onSignIn}
+                    variant="outline"
+                    size="lg"
+                    disabled={false}
+                    className="border-white text-white hover:bg-white hover:text-gray-900 text-lg px-8 py-4"
+                  >
+                    Sign In
+                  </Button>
             </div>
           </motion.div>
         </div>

@@ -10,7 +10,7 @@ import FoodLensDemo from './legacy/FoodLensDemo';
 import ManualFoodInput from './legacy/ManualFoodInput';
 import BarcodeScanner from './legacy/BarcodeScanner';
 import StripePaymentForm from './payment/stripe-payment-form';
-import PaymentPage from './payment/PaymentPage';
+import PaymentPage from './payment/PaymentPage.jsx';
 import SubscriptionManagement from './legacy/SubscriptionManagement';
 import { secureStorage, hasAdminAccess, clearAllCalTraxData } from '../lib/security';
 import { simpleStorage } from '../lib/simpleStorage';
@@ -88,86 +88,90 @@ function App() {
 
   // Initialize app when Clerk user state changes
   useEffect(() => {
-    if (!isLoaded) {
-      setIsLoading(true);
-      return;
-    }
+    const initializeUser = async () => {
+      if (!isLoaded) {
+        setIsLoading(true);
+        return;
+      }
 
-    console.log('🔍 Clerk user state changed:', { user: !!user, isLoaded });
+      console.log('🔍 Clerk user state changed:', { user: !!user, isLoaded });
 
-        if (user) {
-          // User is signed in with Clerk
-          console.log('User signed in with Clerk:', user);
-          console.log('User publicMetadata:', user.publicMetadata);
+      if (user) {
+        // User is signed in with Clerk
+        console.log('User signed in with Clerk:', user);
+        console.log('User unsafeMetadata:', user.unsafeMetadata);
+        
+        // Get user data from database
+        try {
+          const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
+          const userId = user.id;
           
-          // Get user data from database
-          try {
-            const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
-            const userId = user.id;
+          // Create or get user from database
+          const dbUser = await createOrUpdateUser({
+            clerk_user_id: userId,
+            email: email,
+            has_paid: false, // Will be updated by payment
+            plan: null,
+            payment_date: null,
+            trial_used: false,
+            trial_start_date: null,
+            profile_data: user.unsafeMetadata?.caltraxProfile || null
+          });
+          
+          console.log('Database user:', dbUser);
+          
+          // Check payment status from database
+          const hasPaid = dbUser?.has_paid || false;
+          const plan = dbUser?.plan;
+          const trialUsed = dbUser?.trial_used || false;
+          
+          console.log('🔍 Payment check from database:');
+          console.log('  - hasPaid:', hasPaid);
+          console.log('  - plan:', plan);
+          console.log('  - trialUsed:', trialUsed);
+          
+          // Check if user has completed payment first
+          if (hasPaid) {
+            // User has paid, check if profile is completed
+            const profile = dbUser?.profile_data || user.unsafeMetadata?.caltraxProfile;
             
-            // Create or get user from database
-            const dbUser = await createOrUpdateUser({
-              clerk_user_id: userId,
-              email: email,
-              has_paid: false, // Will be updated by payment
-              plan: null,
-              payment_date: null,
-              trial_used: false,
-              trial_start_date: null,
-              profile_data: user.publicMetadata?.caltraxProfile || null
-            });
+            console.log('🔍 Profile check:');
+            console.log('  - profile from database:', dbUser?.profile_data);
+            console.log('  - profile from Clerk:', user.unsafeMetadata?.caltraxProfile);
+            console.log('  - final profile:', profile);
+            console.log('  - profile has calories:', profile?.calories);
             
-            console.log('Database user:', dbUser);
-            
-            // Check payment status from database
-            const hasPaid = dbUser?.has_paid || false;
-            const plan = dbUser?.plan;
-            const trialUsed = dbUser?.trial_used || false;
-            
-            console.log('🔍 Payment check from database:');
-            console.log('  - hasPaid:', hasPaid);
-            console.log('  - plan:', plan);
-            console.log('  - trialUsed:', trialUsed);
-            
-            // Check if user has completed payment first
-            if (hasPaid) {
-              // User has paid, check if profile is completed
-              const profile = dbUser?.profile_data || user.publicMetadata?.caltraxProfile;
-              
-              console.log('🔍 Profile check:');
-              console.log('  - profile from database:', dbUser?.profile_data);
-              console.log('  - profile from Clerk:', user.publicMetadata?.caltraxProfile);
-              console.log('  - final profile:', profile);
-              console.log('  - profile has calories:', profile?.calories);
-              
-              // Simple profile check - if we have calories, we have a profile
-              if (profile && profile.calories) {
-                console.log('✅ Profile found with calories:', profile.calories);
-                setProfileCompleted(true);
-                setCurrentView('dashboard');
-              } else {
-                console.log('❌ No profile found, going to profile setup');
-                setCurrentView('profile');
-              }
+            // Simple profile check - if we have calories, we have a profile
+            if (profile && profile.calories) {
+              console.log('✅ Profile found with calories:', profile.calories);
+              setProfileCompleted(true);
+              setCurrentView('dashboard');
             } else {
-              console.log('❌ User has not paid, going to payment');
-              setCurrentView('payment');
+              console.log('❌ No profile found, going to profile setup');
+              setCurrentView('profile');
             }
-          } catch (error) {
-            console.error('❌ Error checking user data:', error);
-            // Fallback to payment page if database check fails
+          } else {
+            console.log('❌ User has not paid, going to payment');
             setCurrentView('payment');
           }
-        } else {
-          // User is not signed in
-          console.log('User not signed in, staying on landing page');
-          setCurrentView('landing');
+        } catch (error) {
+          console.error('❌ Error checking user data:', error);
+          // Fallback to payment page if database check fails
+          setCurrentView('payment');
         }
+      } else {
+        // User is not signed in
+        console.log('User not signed in, staying on landing page');
+        setCurrentView('landing');
+      }
 
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initializeUser();
   }, [user, isLoaded]);
 
-  const handleSignUp = (userData) => {
+  const handleSignUp = (userData: any) => {
     console.log('Handling sign up:', userData);
     const mockUser = {
       id: 'mock-user-' + Date.now(),
@@ -175,12 +179,11 @@ function App() {
       name: userData.name || 'Test User',
       profile: null
     };
-    setUser(mockUser);
     simpleStorage.setItem('caltrax-user', mockUser);
     setCurrentView('profile');
   };
 
-  const handleSignIn = (userData) => {
+  const handleSignIn = (userData: any) => {
     console.log('Handling sign in:', userData);
     const mockUser = {
       id: 'mock-user-' + Date.now(),
@@ -188,7 +191,6 @@ function App() {
       name: userData.name || 'Test User',
       profile: userData.profile || null
     };
-    setUser(mockUser);
     simpleStorage.setItem('caltrax-user', mockUser);
     
     if (mockUser.profile) {
@@ -199,7 +201,7 @@ function App() {
     }
   };
 
-  const handleProfileComplete = async (profile) => {
+  const handleProfileComplete = async (profile: any) => {
     console.log('🔍 === HANDLE PROFILE COMPLETE CALLED ===');
     console.log('Profile completed:', profile);
     console.log('Current user:', user);
@@ -221,13 +223,11 @@ function App() {
         console.log('✅ Profile saved to database');
         
         // Also update Clerk metadata as backup
-        const updatedMetadata = {
-          ...user.publicMetadata,
-          caltraxProfile: profile
-        };
-        
         await user.update({
-          publicMetadata: updatedMetadata
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            caltraxProfile: profile
+          }
         });
         
         console.log('✅ Profile saved to Clerk metadata');
@@ -327,7 +327,7 @@ function App() {
     setShowSubscriptionManagement(false);
   };
 
-  const handlePaymentSuccess = async (paymentData) => {
+  const handlePaymentSuccess = async (paymentData: any) => {
     console.log('✅ Payment successful, setting subscription as active');
     console.log('Payment data:', paymentData);
     
@@ -350,15 +350,13 @@ function App() {
         console.log('✅ Payment status saved to database');
         
         // Also update Clerk metadata as backup
-        const updatedMetadata = {
-          ...user.publicMetadata,
-          hasPaid: true,
-          paymentDate: new Date().toISOString(),
-          plan: paymentData?.plan || 'trial'
-        };
-        
         await user.update({
-          publicMetadata: updatedMetadata
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            hasPaid: true,
+            paymentDate: new Date().toISOString(),
+            plan: paymentData?.plan || 'trial'
+          }
         });
         
         console.log('✅ Payment status saved to Clerk metadata');
@@ -442,8 +440,8 @@ function App() {
           const debugProfileData = () => {
             console.log('🔍 === DEBUG PROFILE DATA ===');
             console.log('Current user:', user);
-            console.log('User publicMetadata:', user?.publicMetadata);
-            console.log('Clerk profile:', user?.publicMetadata?.caltraxProfile);
+        console.log('User unsafeMetadata:', user?.unsafeMetadata);
+        console.log('Clerk profile:', user?.unsafeMetadata?.caltraxProfile);
             console.log('Stored profile:', simpleStorage.getItem('caltrax-profile'));
             console.log('Stored user:', simpleStorage.getItem('caltrax-user'));
             console.log('Profile completed state:', profileCompleted);
@@ -456,8 +454,8 @@ function App() {
               return;
             }
             
-            // Try to find any valid profile data
-            const clerkProfile = user?.publicMetadata?.caltraxProfile;
+        // Try to find any valid profile data
+        const clerkProfile = user?.unsafeMetadata?.caltraxProfile;
             const storedProfile = simpleStorage.getItem('caltrax-profile');
             const userProfile = simpleStorage.getItem('caltrax-user')?.profile;
             
@@ -478,8 +476,8 @@ function App() {
           // Force sync profile data from Clerk
           const forceSyncProfile = async () => {
             console.log('🔄 Force syncing profile from Clerk...');
-            if (user?.publicMetadata?.caltraxProfile) {
-              const profile = user.publicMetadata.caltraxProfile;
+        if (user?.unsafeMetadata?.caltraxProfile) {
+          const profile = user.unsafeMetadata.caltraxProfile;
               console.log('Found profile in Clerk metadata:', profile);
               simpleStorage.setItem('caltrax-profile', profile);
               console.log('✅ Profile synced to storage');
@@ -541,8 +539,8 @@ function App() {
               {debugMode && (
                 <div className="space-y-1">
                   <div>User: {user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || 'Unknown'}</div>
-                  <div>Has Profile: {user?.publicMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
-                  <div>Calories: {user?.publicMetadata?.caltraxProfile?.calories || 'N/A'}</div>
+                      <div>Has Profile: {user?.unsafeMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
+                      <div>Calories: {user?.unsafeMetadata?.caltraxProfile?.calories || 'N/A'}</div>
                   <div>View: {currentView}</div>
                 </div>
               )}
