@@ -332,6 +332,68 @@ function App() {
     setCurrentView('profile');
   };
 
+  // Migrate old profile data from localStorage
+  const migrateOldProfileData = () => {
+    console.log('🔍 === MIGRATING OLD PROFILE DATA ===');
+    
+    try {
+      // Check for old profile data in localStorage
+      const oldUserData = localStorage.getItem('caltrax-user');
+      const oldSignedUp = localStorage.getItem('caltrax-signed-up');
+      
+      console.log('Old user data found:', !!oldUserData);
+      console.log('Old signed up:', oldSignedUp);
+      
+      if (oldUserData) {
+        const parsedOldUser = JSON.parse(oldUserData);
+        console.log('Parsed old user:', parsedOldUser);
+        
+        if (parsedOldUser.profile && parsedOldUser.profile.calories) {
+          console.log('✅ Found old profile with calories:', parsedOldUser.profile.calories);
+          
+          // Migrate to new format
+          const migratedProfile = {
+            ...parsedOldUser.profile,
+            migratedAt: new Date().toISOString()
+          };
+          
+          // Save to new storage locations
+          simpleStorage.setItem('caltrax-profile', migratedProfile);
+          simpleStorage.setItem('caltrax-user', { ...parsedOldUser, profile: migratedProfile });
+          simpleStorage.setItem('caltrax-has-paid', true); // Assume old users have paid
+          
+          console.log('✅ Profile migrated successfully:', migratedProfile);
+          
+          // Update Clerk metadata if user is available
+          if (user) {
+            user.update({
+              publicMetadata: {
+                ...user.publicMetadata,
+                caltraxProfile: migratedProfile,
+                hasPaid: true
+              }
+            }).then(() => {
+              console.log('✅ Profile saved to Clerk metadata');
+            }).catch(err => {
+              console.error('❌ Failed to save to Clerk:', err);
+            });
+          }
+          
+          // Go to dashboard
+          setProfileCompleted(true);
+          setCurrentView('dashboard');
+          return true;
+        }
+      }
+      
+      console.log('❌ No old profile data found to migrate');
+      return false;
+    } catch (error) {
+      console.error('❌ Error migrating old profile data:', error);
+      return false;
+    }
+  };
+
   // Debug function to check and fix profile data
   const debugProfileData = () => {
     console.log('🔍 === DEBUG PROFILE DATA ===');
@@ -342,6 +404,13 @@ function App() {
     console.log('Stored user:', simpleStorage.getItem('caltrax-user'));
     console.log('Profile completed state:', profileCompleted);
     console.log('Current view:', currentView);
+    
+    // Try to migrate old data first
+    const migrated = migrateOldProfileData();
+    if (migrated) {
+      console.log('✅ Successfully migrated old profile data');
+      return;
+    }
     
     // Try to find any valid profile data
     const clerkProfile = user?.publicMetadata?.caltraxProfile;
@@ -392,6 +461,12 @@ function App() {
                   className="px-2 py-1 bg-green-600 rounded text-xs"
                 >
                   Check Profile
+                </button>
+                <button 
+                  onClick={migrateOldProfileData}
+                  className="px-2 py-1 bg-purple-600 rounded text-xs"
+                >
+                  Migrate Old
                 </button>
               </div>
               {debugMode && (
