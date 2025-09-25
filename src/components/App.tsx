@@ -121,6 +121,14 @@ function App() {
                       simpleStorage.setItem('caltrax-plan', user.publicMetadata.plan);
                     }
                   }
+                  
+                  // Also sync profile data from Clerk to storage if needed
+                  const clerkProfile = user.publicMetadata?.caltraxProfile;
+                  const storedProfile = simpleStorage.getItem('caltrax-profile');
+                  if (clerkProfile && !storedProfile) {
+                    console.log('🔄 Syncing profile data from Clerk to storage');
+                    simpleStorage.setItem('caltrax-profile', clerkProfile);
+                  }
           
           // Check if user has completed payment first
           if (hasPaid) {
@@ -437,40 +445,59 @@ function App() {
     }
   };
 
-  // Debug function to check and fix profile data
-  const debugProfileData = () => {
-    console.log('🔍 === DEBUG PROFILE DATA ===');
-    console.log('Current user:', user);
-    console.log('User publicMetadata:', user?.publicMetadata);
-    console.log('Clerk profile:', user?.publicMetadata?.caltraxProfile);
-    console.log('Stored profile:', simpleStorage.getItem('caltrax-profile'));
-    console.log('Stored user:', simpleStorage.getItem('caltrax-user'));
-    console.log('Profile completed state:', profileCompleted);
-    console.log('Current view:', currentView);
-    
-    // Try to migrate old data first
-    const migrated = migrateOldProfileData();
-    if (migrated) {
-      console.log('✅ Successfully migrated old profile data');
-      return;
-    }
-    
-    // Try to find any valid profile data
-    const clerkProfile = user?.publicMetadata?.caltraxProfile;
-    const storedProfile = simpleStorage.getItem('caltrax-profile');
-    const userProfile = simpleStorage.getItem('caltrax-user')?.profile;
-    
-    const validProfile = clerkProfile || storedProfile || userProfile;
-    
-    if (validProfile && validProfile.calories) {
-      console.log('✅ Valid profile found:', validProfile);
-      setProfileCompleted(true);
-      setCurrentView('dashboard');
-    } else {
-      console.log('❌ No valid profile found, going to profile setup');
-      setCurrentView('profile');
-    }
-  };
+          // Debug function to check and fix profile data
+          const debugProfileData = () => {
+            console.log('🔍 === DEBUG PROFILE DATA ===');
+            console.log('Current user:', user);
+            console.log('User publicMetadata:', user?.publicMetadata);
+            console.log('Clerk profile:', user?.publicMetadata?.caltraxProfile);
+            console.log('Stored profile:', simpleStorage.getItem('caltrax-profile'));
+            console.log('Stored user:', simpleStorage.getItem('caltrax-user'));
+            console.log('Profile completed state:', profileCompleted);
+            console.log('Current view:', currentView);
+            
+            // Try to migrate old data first
+            const migrated = migrateOldProfileData();
+            if (migrated) {
+              console.log('✅ Successfully migrated old profile data');
+              return;
+            }
+            
+            // Try to find any valid profile data
+            const clerkProfile = user?.publicMetadata?.caltraxProfile;
+            const storedProfile = simpleStorage.getItem('caltrax-profile');
+            const userProfile = simpleStorage.getItem('caltrax-user')?.profile;
+            
+            const validProfile = clerkProfile || storedProfile || userProfile;
+            
+            if (validProfile && validProfile.calories) {
+              console.log('✅ Valid profile found:', validProfile);
+              console.log('Profile calories:', validProfile.calories);
+              console.log('Profile macros:', validProfile.macros);
+              setProfileCompleted(true);
+              setCurrentView('dashboard');
+            } else {
+              console.log('❌ No valid profile found, going to profile setup');
+              setCurrentView('profile');
+            }
+          };
+
+          // Force sync profile data from Clerk
+          const forceSyncProfile = async () => {
+            console.log('🔄 Force syncing profile from Clerk...');
+            if (user?.publicMetadata?.caltraxProfile) {
+              const profile = user.publicMetadata.caltraxProfile;
+              console.log('Found profile in Clerk metadata:', profile);
+              simpleStorage.setItem('caltrax-profile', profile);
+              console.log('✅ Profile synced to storage');
+              if (profile.calories) {
+                setProfileCompleted(true);
+                setCurrentView('dashboard');
+              }
+            } else {
+              console.log('❌ No profile found in Clerk metadata');
+            }
+          };
 
   if (isLoading) {
     return (
@@ -505,12 +532,18 @@ function App() {
                 >
                   Check Profile
                 </button>
-                <button 
-                  onClick={migrateOldProfileData}
-                  className="px-2 py-1 bg-purple-600 rounded text-xs"
-                >
-                  Migrate Old
-                </button>
+                        <button 
+                          onClick={migrateOldProfileData}
+                          className="px-2 py-1 bg-purple-600 rounded text-xs"
+                        >
+                          Migrate Old
+                        </button>
+                        <button 
+                          onClick={forceSyncProfile}
+                          className="px-2 py-1 bg-orange-600 rounded text-xs"
+                        >
+                          Force Sync
+                        </button>
               </div>
               {debugMode && (
                 <div className="space-y-1">
