@@ -15,6 +15,7 @@ import SubscriptionManagement from './legacy/SubscriptionManagement';
 import { secureStorage, hasAdminAccess, clearAllCalTraxData } from '../lib/security';
 import { simpleStorage } from '../lib/simpleStorage';
 import { authService } from '../services/authService';
+import { createOrUpdateUser, getUserByClerkId, hasUsedTrial } from '../lib/database';
 
 function App() {
   const { user, isLoaded } = useUser();
@@ -99,81 +100,62 @@ function App() {
           console.log('User signed in with Clerk:', user);
           console.log('User publicMetadata:', user.publicMetadata);
           
-          // Clear any existing payment data to force payment
-          console.log('🧹 Clearing old payment data to force payment');
-          simpleStorage.removeItem('caltrax-has-paid');
-          simpleStorage.removeItem('caltrax-payment-date');
-          simpleStorage.removeItem('caltrax-plan');
-          
-          // Also clear payment status from Clerk metadata
-          if (user.publicMetadata?.hasPaid) {
-            console.log('🧹 Clearing payment status from Clerk metadata');
-            user.update({
-              publicMetadata: {
-                ...user.publicMetadata,
-                hasPaid: false,
-                paymentDate: null,
-                plan: null
+          // Get user data from database
+          try {
+            const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
+            const userId = user.id;
+            
+            // Create or get user from database
+            const dbUser = await createOrUpdateUser({
+              clerk_user_id: userId,
+              email: email,
+              has_paid: false, // Will be updated by payment
+              plan: null,
+              payment_date: null,
+              trial_used: false,
+              trial_start_date: null,
+              profile_data: user.publicMetadata?.caltraxProfile || null
+            });
+            
+            console.log('Database user:', dbUser);
+            
+            // Check payment status from database
+            const hasPaid = dbUser?.has_paid || false;
+            const plan = dbUser?.plan;
+            const trialUsed = dbUser?.trial_used || false;
+            
+            console.log('🔍 Payment check from database:');
+            console.log('  - hasPaid:', hasPaid);
+            console.log('  - plan:', plan);
+            console.log('  - trialUsed:', trialUsed);
+            
+            // Check if user has completed payment first
+            if (hasPaid) {
+              // User has paid, check if profile is completed
+              const profile = dbUser?.profile_data || user.publicMetadata?.caltraxProfile;
+              
+              console.log('🔍 Profile check:');
+              console.log('  - profile from database:', dbUser?.profile_data);
+              console.log('  - profile from Clerk:', user.publicMetadata?.caltraxProfile);
+              console.log('  - final profile:', profile);
+              console.log('  - profile has calories:', profile?.calories);
+              
+              // Simple profile check - if we have calories, we have a profile
+              if (profile && profile.calories) {
+                console.log('✅ Profile found with calories:', profile.calories);
+                setProfileCompleted(true);
+                setCurrentView('dashboard');
+              } else {
+                console.log('❌ No profile found, going to profile setup');
+                setCurrentView('profile');
               }
-            }).catch(err => console.error('Failed to clear Clerk payment data:', err));
-          }
-          
-                  // Check if user has completed payment first - prioritize Clerk metadata
-                  const clerkHasPaid = user.publicMetadata?.hasPaid;
-                  const storageHasPaid = simpleStorage.getItem('caltrax-has-paid');
-                  const hasPaid = clerkHasPaid || storageHasPaid;
-                  
-                  console.log('🔍 Payment check:');
-                  console.log('  - hasPaid from Clerk metadata:', clerkHasPaid);
-                  console.log('  - hasPaid from storage:', storageHasPaid);
-                  console.log('  - final hasPaid:', hasPaid);
-                  console.log('  - user.publicMetadata:', user.publicMetadata);
-                  
-                  // If we have payment status in Clerk but not in storage, sync it
-                  if (clerkHasPaid && !storageHasPaid) {
-                    console.log('🔄 Syncing payment status from Clerk to storage');
-                    simpleStorage.setItem('caltrax-has-paid', true);
-                    if (user.publicMetadata.paymentDate) {
-                      simpleStorage.setItem('caltrax-payment-date', user.publicMetadata.paymentDate);
-                    }
-                    if (user.publicMetadata.plan) {
-                      simpleStorage.setItem('caltrax-plan', user.publicMetadata.plan);
-                    }
-                  }
-                  
-                  // Also sync profile data from Clerk to storage if needed
-                  const clerkProfile = user.publicMetadata?.caltraxProfile;
-                  const storedProfile = simpleStorage.getItem('caltrax-profile');
-                  if (clerkProfile && !storedProfile) {
-                    console.log('🔄 Syncing profile data from Clerk to storage');
-                    simpleStorage.setItem('caltrax-profile', clerkProfile);
-                  }
-          
-          // Check if user has completed payment first
-          if (hasPaid) {
-            // User has paid, check if profile is completed
-            const clerkProfile = user.publicMetadata?.caltraxProfile;
-            const storedProfile = simpleStorage.getItem('caltrax-profile');
-            const profile = clerkProfile || storedProfile;
-            
-            console.log('🔍 Profile check:');
-            console.log('  - clerkProfile:', clerkProfile);
-            console.log('  - storedProfile:', storedProfile);
-            console.log('  - final profile:', profile);
-            console.log('  - profile has calories:', profile?.calories);
-            console.log('  - profile has macros:', profile?.macros);
-            
-            // Simple profile check - if we have calories, we have a profile
-            if (profile && profile.calories) {
-              console.log('✅ Profile found with calories:', profile.calories);
-              setProfileCompleted(true);
-              setCurrentView('dashboard');
             } else {
-              console.log('❌ No profile found, going to profile setup');
-              setCurrentView('profile');
+              console.log('❌ User has not paid, going to payment');
+              setCurrentView('payment');
             }
-          } else {
-            console.log('❌ User has not paid, going to payment');
+          } catch (error) {
+            console.error('❌ Error checking user data:', error);
+            // Fallback to payment page if database check fails
             setCurrentView('payment');
           }
         } else {
@@ -223,70 +205,51 @@ function App() {
     console.log('Current user:', user);
     
     try {
-      // Update Clerk user metadata with profile data
+      // Update database with profile data
       if (user) {
-        console.log('Updating Clerk user metadata with profile...');
-        console.log('Current publicMetadata:', user.publicMetadata);
-        console.log('Profile to save:', profile);
+        const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
+        const userId = user.id;
         
+        console.log('Updating database with profile...');
+        await createOrUpdateUser({
+          clerk_user_id: userId,
+          email: email,
+          profile_data: profile,
+          // Keep existing payment status
+        });
+        
+        console.log('✅ Profile saved to database');
+        
+        // Also update Clerk metadata as backup
         const updatedMetadata = {
           ...user.publicMetadata,
           caltraxProfile: profile
-          // Don't mark as paid here - payment should happen first
         };
-        
-        console.log('Updated metadata:', updatedMetadata);
         
         await user.update({
           publicMetadata: updatedMetadata
         });
         
-        console.log('✅ Profile saved to Clerk user metadata');
-        console.log('Verification - user.publicMetadata after update:', user.publicMetadata);
-        
-        // Force refresh the user data to ensure it's updated
-        console.log('🔄 Refreshing user data...');
-        await user.reload();
-        console.log('✅ User data refreshed');
-        console.log('Updated user.publicMetadata:', user.publicMetadata);
-        
-        // Verify the data was saved
-        const verification = user.publicMetadata?.caltraxProfile;
-        console.log('🔍 Verification - saved profile:', verification);
-        if (verification && verification.calories) {
-          console.log('✅ Profile successfully saved with calories:', verification.calories);
-        } else {
-          console.error('❌ Profile not properly saved to Clerk metadata');
-        }
-      } else {
-        console.log('❌ No user object available for metadata update');
+        console.log('✅ Profile saved to Clerk metadata');
       }
       
-      // Also save to local storage as backup - IMMEDIATELY
+      // Also save to local storage as backup
       const updatedUser = { ...user, profile };
       simpleStorage.setItem('caltrax-user', updatedUser);
       simpleStorage.setItem('caltrax-profile', profile);
       
-      // Don't mark as paid here - payment should happen first
-      
       console.log('✅ Profile saved to local storage');
-      console.log('Setting profile completed to true');
       setProfileCompleted(true);
-      
-      // Set subscription as active after profile completion
       setHasActiveSubscription(true);
-      
-      console.log('Setting current view to dashboard');
       setCurrentView('dashboard');
       
       console.log('🔍 === PROFILE COMPLETE FINISHED ===');
     } catch (error) {
-      console.error('❌ Failed to save profile to Clerk:', error);
-      // Fallback to local storage - this MUST work
+      console.error('❌ Failed to save profile:', error);
+      // Fallback to local storage
       const updatedUser = { ...user, profile };
       simpleStorage.setItem('caltrax-user', updatedUser);
       simpleStorage.setItem('caltrax-profile', profile);
-      // Don't mark as paid here - payment should happen first
       
       console.log('✅ Profile saved to local storage (fallback)');
       setProfileCompleted(true);
@@ -368,9 +331,25 @@ function App() {
     console.log('✅ Payment successful, setting subscription as active');
     console.log('Payment data:', paymentData);
     
-    // Mark user as having paid in Clerk metadata
+    // Update database with payment status
     if (user) {
       try {
+        const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
+        const userId = user.id;
+        
+        await createOrUpdateUser({
+          clerk_user_id: userId,
+          email: email,
+          has_paid: true,
+          plan: paymentData?.plan || 'trial',
+          payment_date: new Date().toISOString(),
+          trial_used: paymentData?.plan === 'trial',
+          trial_start_date: paymentData?.plan === 'trial' ? new Date().toISOString() : null,
+        });
+        
+        console.log('✅ Payment status saved to database');
+        
+        // Also update Clerk metadata as backup
         const updatedMetadata = {
           ...user.publicMetadata,
           hasPaid: true,
@@ -382,13 +361,9 @@ function App() {
           publicMetadata: updatedMetadata
         });
         
-        // Force refresh user data
-        await user.reload();
-        
         console.log('✅ Payment status saved to Clerk metadata');
-        console.log('Updated metadata:', user.publicMetadata);
       } catch (error) {
-        console.error('❌ Failed to save payment status to Clerk:', error);
+        console.error('❌ Failed to save payment status:', error);
       }
     }
     

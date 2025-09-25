@@ -1,86 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
+
 export async function POST(request: NextRequest) {
   try {
-    // Initialize Stripe inside the function to avoid build-time issues
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    
-    console.log('Environment variables check:');
-    console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
-    console.log('STRIPE_SECRET_KEY length:', process.env.STRIPE_SECRET_KEY?.length);
-    console.log('All env vars starting with STRIPE:', Object.keys(process.env).filter(key => key.startsWith('STRIPE')));
-    
-    if (!stripeSecretKey) {
-      console.error('STRIPE_SECRET_KEY environment variable is not set');
-      return NextResponse.json(
-        { 
-          error: 'Payment service not configured',
-          debug: {
-            hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-            stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length,
-            allStripeVars: Object.keys(process.env).filter(key => key.startsWith('STRIPE'))
-          }
-        },
-        { status: 500 }
-      );
-    }
+    const { plan, email, userId } = await request.json();
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-06-20',
-    });
+    console.log('Creating payment intent for:', { plan, email, userId });
 
-    const { plan, email } = await request.json();
-    
-    console.log('Creating payment intent for plan:', plan, 'email:', email);
-    
-    // Define plan pricing
-    const planPricing = {
-      trial: { amount: 0, description: '3-Day Free Trial' },
-      monthly: { amount: 500, description: 'Monthly Subscription' }, // $5.00
-      yearly: { amount: 3000, description: 'Yearly Subscription' }   // $30.00
+    // Define plan pricing (in cents)
+    const planPrices = {
+      trial: 0, // Free trial
+      monthly: 2999, // $29.99/month
+      yearly: 29999, // $299.99/year (save ~17%)
     };
+
+    const amount = planPrices[plan as keyof typeof planPrices];
     
-    const pricing = planPricing[plan as keyof typeof planPricing];
-    
-    if (!pricing) {
+    if (amount === undefined) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
-    
-    // For trial, just return success without creating payment intent
-    if (plan === 'trial') {
-      return NextResponse.json({ 
-        success: true, 
-        clientSecret: null,
-        amount: 0,
-        description: pricing.description
+
+    // Create or retrieve customer
+    let customer;
+    try {
+      const existingCustomers = await stripe.customers.list({
+        email: email,
+        limit: 1,
       });
+      
+      if (existingCustomers.data.length > 0) {
+        customer = existingCustomers.data[0];
+      } else {
+        customer = await stripe.customers.create({
+          email: email,
+          metadata: {
+            userId: userId,
+            plan: plan,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error creating/finding customer:', error);
+      return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
     }
-    
-    // Create payment intent for paid plans
+
+    // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: pricing.amount,
+      amount: amount,
       currency: 'usd',
-      description: pricing.description,
+      customer: customer.id,
       metadata: {
+        userId: userId,
         plan: plan,
         email: email,
-        app: 'caltrax-ai'
       },
       automatic_payment_methods: {
         enabled: true,
       },
     });
-    
+
     console.log('Payment intent created:', paymentIntent.id);
-    
+
     return NextResponse.json({
-      success: true,
       clientSecret: paymentIntent.client_secret,
-      amount: pricing.amount,
-      description: pricing.description
+      customerId: customer.id,
     });
-    
+
   } catch (error) {
     console.error('Error creating payment intent:', error);
     return NextResponse.json(
