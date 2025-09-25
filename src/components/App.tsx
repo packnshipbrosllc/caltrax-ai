@@ -9,7 +9,7 @@ import MacroDashboard from './legacy/MacroDashboard';
 import FoodLensDemo from './legacy/FoodLensDemo';
 import ManualFoodInput from './legacy/ManualFoodInput';
 import BarcodeScanner from './legacy/BarcodeScanner';
-import { StripePaymentForm } from './payment/stripe-payment-form';
+import StripePaymentForm from './payment/stripe-payment-form';
 import SubscriptionManagement from './legacy/SubscriptionManagement';
 import { secureStorage, hasAdminAccess, clearAllCalTraxData } from '../lib/security';
 import { simpleStorage } from '../lib/simpleStorage';
@@ -396,7 +396,7 @@ function App() {
               </div>
               {debugMode && (
                 <div className="space-y-1">
-                  <div>User: {user?.emailAddresses?.[0]?.emailAddress || 'Unknown'}</div>
+                  <div>User: {user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || 'Unknown'}</div>
                   <div>Has Profile: {user?.publicMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
                   <div>Calories: {user?.publicMetadata?.caltraxProfile?.calories || 'N/A'}</div>
                   <div>View: {currentView}</div>
