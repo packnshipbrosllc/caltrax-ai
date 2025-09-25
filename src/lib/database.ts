@@ -1,10 +1,13 @@
 // Database utilities for CalTrax - Updated to work with existing profiles table
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Only create Supabase client if environment variables are available
+export const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 // User tracking interface - adapted for existing profiles table
 export interface CalTraxUser {
@@ -47,6 +50,11 @@ export async function createOrUpdateUser(userData: {
   profile_data?: any;
 }) {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, skipping database update');
+      return null;
+    }
+    
     console.log('Creating/updating user in database:', userData);
     
     // First, try to find existing user by email
@@ -132,6 +140,11 @@ export async function createOrUpdateUser(userData: {
 // Get user by Clerk ID
 export async function getUserByClerkId(clerkUserId: string): Promise<CalTraxUser | null> {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, returning null');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -157,6 +170,11 @@ export async function getUserByClerkId(clerkUserId: string): Promise<CalTraxUser
 // Check if email has used trial before
 export async function hasUsedTrial(email: string): Promise<boolean> {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, allowing trial');
+      return false;
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('trial_used')
@@ -188,6 +206,11 @@ export async function updateUserPayment(
   paymentDate?: string
 ) {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, skipping payment update');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -217,6 +240,11 @@ export async function updateUserPayment(
 // Mark trial as used
 export async function markTrialUsed(clerkUserId: string) {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, skipping trial update');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .update({
