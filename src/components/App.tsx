@@ -99,13 +99,28 @@ function App() {
           console.log('User signed in with Clerk:', user);
           console.log('User publicMetadata:', user.publicMetadata);
           
-          // Check if user has completed payment first
-          const hasPaid = user.publicMetadata?.hasPaid || simpleStorage.getItem('caltrax-has-paid');
-          console.log('🔍 Payment check:');
-          console.log('  - hasPaid from metadata:', user.publicMetadata?.hasPaid);
-          console.log('  - hasPaid from storage:', simpleStorage.getItem('caltrax-has-paid'));
-          console.log('  - final hasPaid:', hasPaid);
-          console.log('  - user.publicMetadata:', user.publicMetadata);
+                  // Check if user has completed payment first - prioritize Clerk metadata
+                  const clerkHasPaid = user.publicMetadata?.hasPaid;
+                  const storageHasPaid = simpleStorage.getItem('caltrax-has-paid');
+                  const hasPaid = clerkHasPaid || storageHasPaid;
+                  
+                  console.log('🔍 Payment check:');
+                  console.log('  - hasPaid from Clerk metadata:', clerkHasPaid);
+                  console.log('  - hasPaid from storage:', storageHasPaid);
+                  console.log('  - final hasPaid:', hasPaid);
+                  console.log('  - user.publicMetadata:', user.publicMetadata);
+                  
+                  // If we have payment status in Clerk but not in storage, sync it
+                  if (clerkHasPaid && !storageHasPaid) {
+                    console.log('🔄 Syncing payment status from Clerk to storage');
+                    simpleStorage.setItem('caltrax-has-paid', true);
+                    if (user.publicMetadata.paymentDate) {
+                      simpleStorage.setItem('caltrax-payment-date', user.publicMetadata.paymentDate);
+                    }
+                    if (user.publicMetadata.plan) {
+                      simpleStorage.setItem('caltrax-plan', user.publicMetadata.plan);
+                    }
+                  }
           
           // Check if user has completed payment first
           if (hasPaid) {
@@ -274,11 +289,26 @@ function App() {
       console.log('Proceeding with manual logout...');
     }
     
-    console.log('Clearing local storage...');
+    console.log('Clearing session data (but keeping payment status)...');
     try {
-      // Use the emergency clear function to ensure all data is removed
+      // Clear session data but preserve payment status
+      const paymentStatus = simpleStorage.getItem('caltrax-has-paid');
+      const profileData = simpleStorage.getItem('caltrax-profile');
+      
+      // Clear all data first
       clearAllCalTraxData();
-      console.log('✅ Storage cleared successfully');
+      
+      // Restore payment status and profile data
+      if (paymentStatus) {
+        simpleStorage.setItem('caltrax-has-paid', paymentStatus);
+        console.log('✅ Payment status preserved');
+      }
+      if (profileData) {
+        simpleStorage.setItem('caltrax-profile', profileData);
+        console.log('✅ Profile data preserved');
+      }
+      
+      console.log('✅ Session data cleared, payment status preserved');
     } catch (storageError) {
       console.error('❌ Error clearing storage:', storageError);
     }
@@ -308,19 +338,29 @@ function App() {
     setShowSubscriptionManagement(false);
   };
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentData) => {
     console.log('✅ Payment successful, setting subscription as active');
+    console.log('Payment data:', paymentData);
     
     // Mark user as having paid in Clerk metadata
     if (user) {
       try {
+        const updatedMetadata = {
+          ...user.publicMetadata,
+          hasPaid: true,
+          paymentDate: new Date().toISOString(),
+          plan: paymentData?.plan || 'trial'
+        };
+        
         await user.update({
-          publicMetadata: {
-            ...user.publicMetadata,
-            hasPaid: true
-          }
+          publicMetadata: updatedMetadata
         });
+        
+        // Force refresh user data
+        await user.reload();
+        
         console.log('✅ Payment status saved to Clerk metadata');
+        console.log('Updated metadata:', user.publicMetadata);
       } catch (error) {
         console.error('❌ Failed to save payment status to Clerk:', error);
       }
@@ -328,6 +368,8 @@ function App() {
     
     // Also save to local storage as backup
     simpleStorage.setItem('caltrax-has-paid', true);
+    simpleStorage.setItem('caltrax-payment-date', new Date().toISOString());
+    simpleStorage.setItem('caltrax-plan', paymentData?.plan || 'trial');
     
     setHasActiveSubscription(true);
     setCurrentView('profile');
