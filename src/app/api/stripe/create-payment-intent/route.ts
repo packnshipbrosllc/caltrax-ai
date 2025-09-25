@@ -6,10 +6,22 @@ export async function POST(request: NextRequest) {
     // Initialize Stripe inside the function to avoid build-time issues
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     
+    console.log('Environment variables check:');
+    console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+    console.log('STRIPE_SECRET_KEY length:', process.env.STRIPE_SECRET_KEY?.length);
+    console.log('All env vars starting with STRIPE:', Object.keys(process.env).filter(key => key.startsWith('STRIPE')));
+    
     if (!stripeSecretKey) {
       console.error('STRIPE_SECRET_KEY environment variable is not set');
       return NextResponse.json(
-        { error: 'Payment service not configured' },
+        { 
+          error: 'Payment service not configured',
+          debug: {
+            hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+            stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length,
+            allStripeVars: Object.keys(process.env).filter(key => key.startsWith('STRIPE'))
+          }
+        },
         { status: 500 }
       );
     }
