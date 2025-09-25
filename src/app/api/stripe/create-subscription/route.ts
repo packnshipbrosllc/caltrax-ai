@@ -5,6 +5,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-12-18.acacia',
 });
 
+// Real price IDs from your working Netlify app
+const PRICE_IDS = {
+  trial: 'price_1S84cT2LmuiKVnPd3NXruhvk', // Monthly price for trial
+  monthly: 'price_1S84cT2LmuiKVnPd3NXruhvk', // Monthly subscription
+  yearly: 'price_1S84dS2LmuiKVnPdj6UCRzsN', // Yearly subscription
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { customerId, paymentMethodId, planId } = await request.json();
@@ -30,26 +37,18 @@ export async function POST(request: NextRequest) {
     // Determine trial period based on plan
     const trialDays = planId === 'trial' ? 3 : 0;
     
-    // For trial, we need to create a subscription with a price
-    // Let's create a monthly subscription for trials (they'll be charged after trial)
-    const monthlyPrice = await stripe.prices.create({
-      unit_amount: 500, // $5
-      currency: 'usd',
-      recurring: {
-        interval: 'month',
-      },
-      product_data: {
-        name: 'CalTrax AI Monthly Plan',
-        description: 'CalTrax AI-powered nutrition tracking - Monthly subscription - $5/month',
-      },
-    });
+    // Get the correct price ID
+    const priceId = PRICE_IDS[planId as keyof typeof PRICE_IDS];
+    if (!priceId) {
+      return NextResponse.json({ error: 'Invalid plan ID' }, { status: 400 });
+    }
     
     // Create subscription with trial period
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [
         {
-          price: monthlyPrice.id,
+          price: priceId,
         },
       ],
       trial_period_days: trialDays,
