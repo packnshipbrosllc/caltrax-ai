@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, ArrowRight, Clock, Camera, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '../legacy/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../legacy/ui/Card';
-import WorkingStripeForm from './WorkingStripeForm';
+import OriginalStripeForm from './OriginalStripeForm';
 import { hasUsedTrial, getUserByClerkId } from '@/lib/database';
 
 export default function PaymentPage({ onSuccess, onCancel, user }) {
@@ -242,7 +242,7 @@ export default function PaymentPage({ onSuccess, onCancel, user }) {
                 </div>
               )}
 
-              <WorkingStripeForm
+              <OriginalStripeForm
                 selectedPlan={selectedPlan}
                 email={email}
                 userId={userId}

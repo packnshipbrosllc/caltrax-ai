@@ -7,61 +7,71 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { customerId, plan, email, userId } = await request.json();
+    const { customerId, paymentMethodId, planId } = await request.json();
 
-    console.log('Creating subscription for:', { customerId, plan, email, userId });
+    console.log('Creating subscription for:', { customerId, paymentMethodId, planId });
 
-    // Define plan pricing
-    const planPrices = {
-      monthly: 500, // $5/month
-      yearly: 3000, // $30/year
-    };
-
-    const amount = planPrices[plan as keyof typeof planPrices];
-    
-    if (amount === undefined) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    if (!customerId || !paymentMethodId) {
+      return NextResponse.json({ error: 'Customer ID and Payment Method ID are required' }, { status: 400 });
     }
 
-    // Create price for the plan
-    const price = await stripe.prices.create({
-      unit_amount: amount,
+    // Attach payment method to customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId,
+    });
+
+    // Set as default payment method
+    await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    // Determine trial period based on plan
+    const trialDays = planId === 'trial' ? 3 : 0;
+    
+    // For trial, we need to create a subscription with a price
+    // Let's create a monthly subscription for trials (they'll be charged after trial)
+    const monthlyPrice = await stripe.prices.create({
+      unit_amount: 500, // $5
       currency: 'usd',
       recurring: {
-        interval: plan === 'yearly' ? 'year' : 'month',
+        interval: 'month',
       },
       product_data: {
-        name: `CalTrax ${plan === 'yearly' ? 'Yearly' : 'Monthly'} Plan`,
-        description: `CalTrax AI-powered nutrition tracking - ${plan === 'yearly' ? 'Yearly' : 'Monthly'} subscription - $${plan === 'yearly' ? '30' : '5'}/${plan === 'yearly' ? 'year' : 'month'}`,
+        name: 'CalTrax AI Monthly Plan',
+        description: 'CalTrax AI-powered nutrition tracking - Monthly subscription - $5/month',
       },
     });
-
-    // Create subscription
+    
+    // Create subscription with trial period
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
-      items: [{ price: price.id }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
-      metadata: {
-        userId: userId,
-        plan: plan,
-        email: email,
+      items: [
+        {
+          price: monthlyPrice.id,
+        },
+      ],
+      trial_period_days: trialDays,
+      payment_behavior: trialDays > 0 ? 'allow_incomplete' : 'default_incomplete',
+      payment_settings: { 
+        save_default_payment_method: 'on_subscription',
+        payment_method_options: {
+          card: {
+            request_three_d_secure: 'automatic'
+          }
+        }
       },
+      expand: ['latest_invoice.payment_intent'],
     });
-
-    console.log('Subscription created:', subscription.id);
 
     return NextResponse.json({
+      success: true,
       subscriptionId: subscription.id,
-      clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+      clientSecret: (subscription.latest_invoice as Stripe.Invoice).payment_intent as string,
     });
-
-  } catch (error) {
-    console.error('Error creating subscription:', error);
-    return NextResponse.json(
-      { error: 'Failed to create subscription' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('Stripe Subscription creation failed:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
