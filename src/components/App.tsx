@@ -10,6 +10,7 @@ import FoodLensDemo from './legacy/FoodLensDemo';
 import ManualFoodInput from './legacy/ManualFoodInput';
 import BarcodeScanner from './legacy/BarcodeScanner';
 import StripePaymentForm from './payment/stripe-payment-form';
+import PaymentPage from './payment/PaymentPage';
 import SubscriptionManagement from './legacy/SubscriptionManagement';
 import { secureStorage, hasAdminAccess, clearAllCalTraxData } from '../lib/security';
 import { simpleStorage } from '../lib/simpleStorage';
@@ -507,20 +508,10 @@ function App() {
       )}
       
       {currentView === 'payment' && (
-        <div className="min-h-screen flex items-center justify-center bg-base-100">
-          <div className="w-full max-w-2xl">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-4">Complete Your Subscription</h1>
-              <p className="text-lg text-base-content/70">
-                Start your 3-day free trial and unlock all CalTrax AI features
-              </p>
-            </div>
-            <StripePaymentForm 
-              onSuccess={handlePaymentSuccess}
-              onCancel={() => setCurrentView('landing')}
-            />
-          </div>
-        </div>
+        <PaymentPage 
+          onSuccess={handlePaymentSuccess}
+          onCancel={() => setCurrentView('landing')}
+        />
       )}
       
       {currentView === 'profile' && (
