@@ -112,10 +112,18 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealSt
         '::placeholder': {
           color: '#9ca3af',
         },
-        backgroundColor: '#18181b',
+        backgroundColor: 'transparent',
+        border: '1px solid #4b5563',
+        borderRadius: '8px',
+        padding: '12px',
       },
       invalid: {
         color: '#ef4444',
+        borderColor: '#ef4444',
+      },
+      complete: {
+        color: '#10b981',
+        borderColor: '#10b981',
       },
     },
     hidePostalCode: true,
@@ -129,14 +137,15 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealSt
           <span>Your payment information is secure and encrypted</span>
         </div>
         
-        <div className="p-4 bg-zinc-900 border border-zinc-600 rounded-lg">
-          <label className="block text-sm font-medium text-zinc-300 mb-2">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-zinc-300">
             Card Information
           </label>
-          <CardElement
-            options={cardElementOptions}
-            className="p-3"
-          />
+          <div className="p-4 bg-zinc-900 border border-zinc-600 rounded-lg">
+            <CardElement
+              options={cardElementOptions}
+            />
+          </div>
         </div>
       </div>
 

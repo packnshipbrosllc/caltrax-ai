@@ -155,11 +155,16 @@ export default function PaymentPage({ onSuccess, onCancel, user }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className={`relative ${plan.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              onClick={() => !plan.disabled && setSelectedPlan(plan.id)}
+              onClick={() => {
+                if (!plan.disabled) {
+                  console.log('Selecting plan:', plan.id);
+                  setSelectedPlan(plan.id);
+                }
+              }}
             >
               <Card className={`bg-zinc-800/50 border-zinc-700 transition-all duration-300 ${
                 selectedPlan === plan.id 
-                  ? 'border-blue-500 bg-blue-500/10' 
+                  ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/50' 
                   : plan.disabled 
                     ? 'border-zinc-600' 
                     : 'hover:border-zinc-500'
@@ -169,6 +174,13 @@ export default function PaymentPage({ onSuccess, onCancel, user }) {
                     <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                       Most Popular
                     </span>
+                  </div>
+                )}
+                {selectedPlan === plan.id && (
+                  <div className="absolute -top-3 right-4">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
                   </div>
                 )}
                 {plan.disabled && (
@@ -218,6 +230,9 @@ export default function PaymentPage({ onSuccess, onCancel, user }) {
               <CardTitle className="text-center text-2xl">Complete Your Subscription</CardTitle>
               <div className="text-center text-sm text-zinc-400">
                 Signed in as: {email}
+              </div>
+              <div className="text-center text-sm text-blue-400 mt-2">
+                Selected Plan: {plans.find(p => p.id === selectedPlan)?.name} - {plans.find(p => p.id === selectedPlan)?.price}/{plans.find(p => p.id === selectedPlan)?.period}
               </div>
             </CardHeader>
             <CardContent>
