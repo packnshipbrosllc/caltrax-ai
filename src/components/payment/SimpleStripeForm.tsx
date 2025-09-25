@@ -23,31 +23,29 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
   const [cvv, setCvv] = useState('');
   const [cardName, setCardName] = useState('');
 
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const parts = [];
-    for (let i = 0, len = v.length; i < len; i += 4) {
-      parts.push(v.substring(i, i + 4));
-    }
-    return parts.join(' ');
-  };
-
-  const formatExpiryDate = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4);
-    }
-    return v;
-  };
-
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCardNumber(e.target.value);
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length > 16) value = value.slice(0, 16); // Limit to 16 digits
+    
+    // Add spaces every 4 digits
+    const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
     setCardNumber(formatted);
   };
 
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatExpiryDate(e.target.value);
-    setExpiryDate(formatted);
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length > 4) value = value.slice(0, 4); // Limit to 4 digits
+    
+    // Add slash after 2 digits
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    setExpiryDate(value);
+  };
+
+  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setCvv(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,7 +136,7 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
       }
 
       console.log('Card details:', {
-        number: cardNumber.replace(/\s/g, ''),
+        number: cleanCardNumber,
         exp_month: expMonth,
         exp_year: expYear,
         cvc: cvv,
@@ -149,7 +147,7 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
         {
           payment_method: {
             card: {
-              number: cardNumber.replace(/\s/g, ''),
+              number: cleanCardNumber,
               exp_month: expMonth,
               exp_year: expYear,
               cvc: cvv,
@@ -168,17 +166,20 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
         throw new Error(stripeError.message);
       }
 
-      if (paymentIntent.status === 'succeeded') {
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
         onSuccess({
           plan: selectedPlan,
           paymentDate: new Date().toISOString(),
           paymentIntentId: paymentIntent.id,
         });
+      } else {
+        throw new Error('Payment was not successful');
       }
     } catch (err: any) {
       console.error('Payment error:', err);
-      setError(err.message || 'Payment failed. Please try again.');
-      onError(err.message || 'Payment failed. Please try again.');
+      const errorMessage = err.message || 'Payment failed. Please try again.';
+      setError(errorMessage);
+      onError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +243,7 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
               <input
                 type="text"
                 value={cvv}
-                onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onChange={handleCvvChange}
                 placeholder="123"
                 maxLength={4}
                 className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
