@@ -85,14 +85,6 @@ function App() {
     };
   }, []);
 
-  // Clear any existing payment data to force payment
-  useEffect(() => {
-    // Clear old payment data to ensure users must pay
-    simpleStorage.removeItem('caltrax-has-paid');
-    simpleStorage.removeItem('caltrax-payment-date');
-    simpleStorage.removeItem('caltrax-plan');
-  }, []);
-
   // Initialize app when Clerk user state changes
   useEffect(() => {
     if (!isLoaded) {
@@ -106,6 +98,25 @@ function App() {
           // User is signed in with Clerk
           console.log('User signed in with Clerk:', user);
           console.log('User publicMetadata:', user.publicMetadata);
+          
+          // Clear any existing payment data to force payment
+          console.log('🧹 Clearing old payment data to force payment');
+          simpleStorage.removeItem('caltrax-has-paid');
+          simpleStorage.removeItem('caltrax-payment-date');
+          simpleStorage.removeItem('caltrax-plan');
+          
+          // Also clear payment status from Clerk metadata
+          if (user.publicMetadata?.hasPaid) {
+            console.log('🧹 Clearing payment status from Clerk metadata');
+            user.update({
+              publicMetadata: {
+                ...user.publicMetadata,
+                hasPaid: false,
+                paymentDate: null,
+                plan: null
+              }
+            }).catch(err => console.error('Failed to clear Clerk payment data:', err));
+          }
           
                   // Check if user has completed payment first - prioritize Clerk metadata
                   const clerkHasPaid = user.publicMetadata?.hasPaid;
