@@ -65,21 +65,21 @@ export default function PaymentPage({ onSuccess, onCancel, user }) {
     },
     {
       id: 'monthly',
-      name: 'Monthly Plan',
-      price: '$29.99',
+      name: 'Monthly',
+      price: '$5',
       period: 'per month',
-      description: 'Full access to all features',
+      description: 'Perfect for trying out',
       features: ['Everything in trial', 'Priority support', 'Advanced analytics', 'Export data', 'Personalized meal plans', 'Personalized workout plans'],
       popular: true,
       trial: false
     },
     {
       id: 'yearly',
-      name: 'Yearly Plan',
-      price: '$299.99',
+      name: 'Yearly',
+      price: '$30',
       period: 'per year',
-      description: 'Best value - Save 17%',
-      originalPrice: '$359.88',
+      description: 'Best value - Save 50%',
+      originalPrice: '$60',
       features: ['Everything in monthly', 'Premium insights', 'Custom goals', 'API access', 'Personalized meal plans', 'Personalized workout plans'],
       popular: false,
       trial: false

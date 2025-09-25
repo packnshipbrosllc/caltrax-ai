@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
 
     // Define plan pricing
     const planPrices = {
-      monthly: 2999, // $29.99/month
-      yearly: 29999, // $299.99/year
+      monthly: 500, // $5/month
+      yearly: 3000, // $30/year
     };
 
     const amount = planPrices[plan as keyof typeof planPrices];
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       },
       product_data: {
         name: `CalTrax ${plan === 'yearly' ? 'Yearly' : 'Monthly'} Plan`,
-        description: `CalTrax AI-powered nutrition tracking - ${plan === 'yearly' ? 'Yearly' : 'Monthly'} subscription`,
+        description: `CalTrax AI-powered nutrition tracking - ${plan === 'yearly' ? 'Yearly' : 'Monthly'} subscription - $${plan === 'yearly' ? '30' : '5'}/${plan === 'yearly' ? 'year' : 'month'}`,
       },
     });
 

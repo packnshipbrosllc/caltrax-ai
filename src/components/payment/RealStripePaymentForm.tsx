@@ -159,7 +159,7 @@ function PaymentForm({ selectedPlan, email, userId, onSuccess, onError }: RealSt
         ) : (
           <>
             <CreditCard className="w-4 h-4 mr-2" />
-            {selectedPlan === 'trial' ? 'Start Free Trial' : `Subscribe for $${selectedPlan === 'monthly' ? '29.99/month' : '299.99/year'}`}
+            {selectedPlan === 'trial' ? 'Start Free Trial' : `Subscribe for $${selectedPlan === 'monthly' ? '5/month' : '30/year'}`}
             <ArrowRight className="w-4 h-4 ml-2" />
           </>
         )}

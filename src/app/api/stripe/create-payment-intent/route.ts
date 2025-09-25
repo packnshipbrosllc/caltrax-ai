@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
     // Define plan pricing (in cents)
     const planPrices = {
       trial: 0, // Free trial
-      monthly: 2999, // $29.99/month
-      yearly: 29999, // $299.99/year (save ~17%)
+      monthly: 500, // $5/month
+      yearly: 3000, // $30/year (save 50%)
     };
 
     const amount = planPrices[plan as keyof typeof planPrices];
