@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowRight, Clock, DollarSign, Calendar, Zap, X } from 'lucide-react';
+import { Check, ArrowRight, Clock, Camera, Loader2 } from 'lucide-react';
 import { Button } from '../legacy/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../legacy/ui/Card';
-import StripePaymentForm from './stripe-payment-form';
 
 export default function PaymentPage({ onSuccess, onCancel }) {
   const [selectedPlan, setSelectedPlan] = useState('trial');
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const plans = [
     {
@@ -43,120 +49,84 @@ export default function PaymentPage({ onSuccess, onCancel }) {
     }
   ];
 
-  const handlePlanSelect = (planId) => {
-    setSelectedPlan(planId);
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // For now, just mark as successful
+      console.log('Signup successful:', { email, selectedPlan });
+      onSuccess({ email, plan: selectedPlan });
+    } catch (err) {
+      setError('Signup failed. Please try again.');
+      console.error('Signup error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const handleContinue = () => {
-    setShowPaymentForm(true);
-  };
-
-  const handlePaymentSuccess = (data) => {
-    console.log('Payment successful:', data);
-    onSuccess(data);
-  };
-
-  const handlePaymentError = (error) => {
-    console.error('Payment error:', error);
-    setShowPaymentForm(false);
-  };
-
-  if (showPaymentForm) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={() => setShowPaymentForm(false)}
-              className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-              Back to Plans
-            </button>
-            <h1 className="text-2xl font-bold">Complete Your Subscription</h1>
-          </div>
-          
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Selected Plan Summary */}
-            <div>
-              <Card className="bg-zinc-800/50 border-zinc-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Order Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {(() => {
-                    const plan = plans.find(p => p.id === selectedPlan);
-                    return (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold">{plan.name}</h3>
-                            <p className="text-sm text-zinc-400">{plan.description}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold">{plan.price}</div>
-                            <div className="text-sm text-zinc-400">{plan.period}</div>
-                          </div>
-                        </div>
-                        <div className="border-t border-zinc-700 pt-4">
-                          <div className="flex items-center justify-between text-lg font-semibold">
-                            <span>Total</span>
-                            <span>{plan.price}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Payment Form */}
-            <div>
-              <StripePaymentForm
-                selectedPlan={selectedPlan}
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
+      {/* Navigation */}
+      <nav className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold">CalTrax AI</span>
+            </div>
+            <Button 
+              onClick={onCancel}
+              variant="outline" 
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
         <div className="text-center mb-12">
-          <motion.div
+          <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-3 mb-4"
+            transition={{ duration: 0.8 }}
+            className="text-4xl md:text-5xl font-bold mb-6"
           >
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold">Choose Your Plan</h1>
-          </motion.div>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
-            Start your journey to better nutrition with AI-powered food analysis
-          </p>
+            Choose Your{' '}
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              CalTrax AI
+            </span>{' '}
+            Plan
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-xl text-zinc-300 max-w-2xl mx-auto"
+          >
+            Start your journey to better nutrition with our AI-powered food analysis
+          </motion.p>
         </div>
 
-        {/* Plans */}
+        {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`relative ${plan.popular ? 'md:-mt-4' : ''}`}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              className={`relative ${plan.popular ? 'scale-105' : ''}`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -165,72 +135,190 @@ export default function PaymentPage({ onSuccess, onCancel }) {
                   </span>
                 </div>
               )}
-              
               <Card 
-                className={`cursor-pointer transition-all duration-300 ${
-                  selectedPlan === plan.id
-                    ? 'border-blue-500 bg-blue-500/10 scale-105'
-                    : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
-                } ${plan.popular ? 'ring-2 ring-blue-500/20' : ''}`}
-                onClick={() => handlePlanSelect(plan.id)}
+                className={`cursor-pointer transition-all duration-300 bg-zinc-800/50 border-zinc-700 ${
+                  selectedPlan === plan.id 
+                    ? 'ring-2 ring-blue-500 bg-zinc-800/70' 
+                    : 'hover:bg-zinc-800/70'
+                } ${plan.popular ? 'border-blue-500/50' : ''}`}
+                onClick={() => setSelectedPlan(plan.id)}
               >
-                <CardHeader className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    {selectedPlan === plan.id && (
-                      <Check className="w-5 h-5 text-blue-500 mr-2" />
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-2xl font-bold text-white">{plan.name}</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-white">{plan.price}</span>
+                    <span className="text-zinc-400 ml-2">{plan.period}</span>
+                    {plan.originalPrice && (
+                      <div className="text-sm text-zinc-500 line-through mt-1">
+                        {plan.originalPrice}/year
+                      </div>
                     )}
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-4xl font-bold">
-                      {plan.price}
-                      {plan.originalPrice && (
-                        <span className="text-lg text-zinc-400 line-through ml-2">
-                          {plan.originalPrice}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-zinc-400">{plan.period}</div>
-                    <p className="text-sm text-zinc-300">{plan.description}</p>
-                  </div>
+                  <p className="text-zinc-400 mt-2">{plan.description}</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-zinc-300">{feature}</span>
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center">
+                        <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
+                        <span className="text-zinc-300">{feature}</span>
                       </li>
                     ))}
                   </ul>
+                  {plan.trial && (
+                    <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <div className="flex items-center text-blue-400 text-sm">
+                        <Clock className="w-4 h-4 mr-2" />
+                        Free for 3 days, then auto-billing
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
 
-        {/* Continue Button */}
-        <div className="text-center">
-          <Button
-            onClick={handleContinue}
-            size="lg"
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
-          >
-            Continue to Payment
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-          
-          <div className="mt-4 flex items-center justify-center gap-4 text-sm text-zinc-400">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Cancel anytime</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Check className="w-4 h-4" />
-              <span>Secure payment</span>
-            </div>
-          </div>
-        </div>
+        {/* Signup Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="max-w-md mx-auto"
+        >
+          <Card className="bg-zinc-800/50 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">Create Your Account</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignup} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Create a password"
+                  />
+                </div>
+
+                {/* Credit Card Information - Required for all plans */}
+                <div className="space-y-4 pt-4 border-t border-zinc-700">
+                  <h3 className="text-lg font-semibold text-zinc-200">Payment Information</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-300 mb-2">
+                        Cardholder Name
+                      </label>
+                  <input
+                    type="text"
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="John Doe"
+                  />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-300 mb-2">
+                        Card Number
+                      </label>
+                      <input
+                        type="text"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();
+                          setCardNumber(value);
+                        }}
+                        required={selectedPlan !== 'trial'}
+                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="1234 5678 9012 3456"
+                        maxLength="19"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                          Expiry Date
+                        </label>
+                        <input
+                          type="text"
+                          value={expiryDate}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').replace(/(.{2})/, '$1/');
+                            setExpiryDate(value);
+                          }}
+                          required={selectedPlan !== 'trial'}
+                          className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="MM/YY"
+                          maxLength="5"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                          CVV
+                        </label>
+                        <input
+                          type="text"
+                          value={cvv}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            setCvv(value);
+                          }}
+                          required={selectedPlan !== 'trial'}
+                          className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="123"
+                          maxLength="4"
+                        />
+                      </div>
+                    </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg py-3"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {selectedPlan === 'trial' ? 'Setting up trial...' : 'Processing payment...'}
+                    </div>
+                  ) : (
+                    selectedPlan === 'trial' ? 'Start 3-Day Free Trial' : 'Subscribe Now'
+                  )}
+                </Button>
+
+                <p className="text-xs text-zinc-500 text-center">
+                  By subscribing, you agree to our Terms of Service and Privacy Policy.
+                  {selectedPlan === 'trial' && ' You will be charged after the trial period.'}
+                </p>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
