@@ -64,6 +64,25 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
       return;
     }
 
+    // Validate card number (should be 16 digits)
+    const cleanCardNumber = cardNumber.replace(/\s/g, '');
+    if (cleanCardNumber.length !== 16) {
+      setError('Card number must be 16 digits');
+      return;
+    }
+
+    // Validate expiry date (should be MM/YY format)
+    if (!expiryDate.includes('/') || expiryDate.length !== 5) {
+      setError('Expiry date must be in MM/YY format');
+      return;
+    }
+
+    // Validate CVV (should be 3-4 digits)
+    if (cvv.length < 3 || cvv.length > 4) {
+      setError('CVV must be 3-4 digits');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -86,10 +105,21 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
         }),
       });
 
-      const { clientSecret, error: apiError } = await response.json();
+      const responseData = await response.json();
+      console.log('API Response:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to create payment intent');
+      }
+
+      const { clientSecret, error: apiError } = responseData;
 
       if (apiError) {
         throw new Error(apiError);
+      }
+
+      if (!clientSecret) {
+        throw new Error('No client secret received from server');
       }
 
       // For trial, we don't need to process payment
@@ -103,6 +133,14 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
       }
 
       // For paid plans, confirm payment
+      console.log('Confirming payment with Stripe...');
+      console.log('Card details:', {
+        number: cardNumber.replace(/\s/g, ''),
+        exp_month: parseInt(expiryDate.split('/')[0]),
+        exp_year: parseInt('20' + expiryDate.split('/')[1]),
+        cvc: cvv,
+      });
+
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         clientSecret,
         {
@@ -120,6 +158,8 @@ export default function SimpleStripeForm({ selectedPlan, email, userId, onSucces
           },
         }
       );
+
+      console.log('Stripe response:', { stripeError, paymentIntent });
 
       if (stripeError) {
         throw new Error(stripeError.message);
