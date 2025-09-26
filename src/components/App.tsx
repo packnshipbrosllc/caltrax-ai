@@ -598,6 +598,19 @@ function App() {
                         >
                           Refresh Data
                         </button>
+                        <button 
+                          onClick={async () => {
+                            if (user?.id) {
+                              const response = await fetch(`/api/debug-user?clerkUserId=${user.id}`);
+                              const data = await response.json();
+                              console.log('🔍 Database debug:', data);
+                              alert(`Database Status:\nHas Paid: ${data.hasPaid}\nPlan: ${data.plan}\nHas Profile: ${data.hasProfile}\nUser Found: ${data.hasUser}`);
+                            }
+                          }}
+                          className="px-2 py-1 bg-pink-600 rounded text-xs"
+                        >
+                          Check DB
+                        </button>
               </div>
               {debugMode && (
                 <div className="space-y-1">
