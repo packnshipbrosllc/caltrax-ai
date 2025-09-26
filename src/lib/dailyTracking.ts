@@ -59,11 +59,14 @@ export interface WeeklySummary {
 // Get user's database ID from Clerk ID
 async function getUserIdFromClerkId(clerkUserId: string): Promise<string | null> {
   try {
+    console.log('🔍 getUserIdFromClerkId called with:', clerkUserId);
+    
     if (!supabase) {
-      console.warn('Supabase not configured, cannot get user ID');
+      console.error('❌ Supabase not configured, cannot get user ID');
       return null;
     }
 
+    console.log('🔍 Querying profiles table for clerk_user_id:', clerkUserId);
     const { data, error } = await supabase
       .from('profiles')
       .select('id')
@@ -71,13 +74,20 @@ async function getUserIdFromClerkId(clerkUserId: string): Promise<string | null>
       .single();
 
     if (error) {
-      console.error('Error getting user ID:', error);
+      console.error('❌ Error getting user ID from database:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return null;
     }
 
+    console.log('✅ Found user ID in database:', data?.id);
     return data?.id || null;
   } catch (error) {
-    console.error('Failed to get user ID:', error);
+    console.error('❌ Failed to get user ID:', error);
     return null;
   }
 }
@@ -101,14 +111,19 @@ export async function addFoodEntry(
   }
 ): Promise<FoodEntry | null> {
   try {
+    console.log('🍎 addFoodEntry called with:', { clerkUserId, foodData });
+    
     if (!supabase) {
-      console.warn('Supabase not configured, cannot add food entry');
+      console.error('❌ Supabase not configured, cannot add food entry');
       return null;
     }
 
+    console.log('🔍 Getting user ID from Clerk ID:', clerkUserId);
     const userId = await getUserIdFromClerkId(clerkUserId);
+    console.log('🔍 User ID from database:', userId);
+    
     if (!userId) {
-      console.error('User not found in database');
+      console.error('❌ User not found in database for Clerk ID:', clerkUserId);
       return null;
     }
 
@@ -131,6 +146,8 @@ export async function addFoodEntry(
       source: foodData.source || 'manual'
     };
 
+    console.log('🍎 Inserting food entry data:', entryData);
+
     const { data, error } = await supabase
       .from('daily_entries')
       .insert(entryData)
@@ -138,11 +155,17 @@ export async function addFoodEntry(
       .single();
 
     if (error) {
-      console.error('Error adding food entry:', error);
+      console.error('❌ Error adding food entry to database:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error;
     }
 
-    console.log('✅ Food entry added to database:', data);
+    console.log('✅ Food entry added to database successfully:', data);
     return data;
   } catch (error) {
     console.error('Failed to add food entry:', error);
