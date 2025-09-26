@@ -243,6 +243,12 @@ function App() {
       setHasActiveSubscription(true);
       setCurrentView('dashboard');
       
+      // Force refresh user data to ensure database is updated
+      setTimeout(() => {
+        console.log('🔄 Auto-refreshing user data after profile completion...');
+        refreshUserData();
+      }, 1000);
+      
       console.log('🔍 === PROFILE COMPLETE FINISHED ===');
     } catch (error) {
       console.error('❌ Failed to save profile:', error);
@@ -255,6 +261,48 @@ function App() {
       setProfileCompleted(true);
       setHasActiveSubscription(true);
       setCurrentView('dashboard');
+    }
+  };
+
+  // Force refresh user data from database
+  const refreshUserData = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🔄 Refreshing user data from database...');
+      const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
+      const userId = user.id;
+      
+      const dbUser = await createOrUpdateUser({
+        clerk_user_id: userId,
+        email: email,
+        // Don't update anything, just fetch current data
+      });
+      
+      console.log('🔄 Refreshed database user:', dbUser);
+      
+      if (dbUser) {
+        const hasPaid = dbUser?.has_paid || false;
+        const profile = dbUser?.profile_data || user.unsafeMetadata?.caltraxProfile;
+        
+        console.log('🔄 Refreshed payment status:', hasPaid);
+        console.log('🔄 Refreshed profile:', profile);
+        
+        if (hasPaid && profile && profile.calories) {
+          console.log('✅ User has paid and profile is complete - going to dashboard');
+          setProfileCompleted(true);
+          setHasActiveSubscription(true);
+          setCurrentView('dashboard');
+        } else if (hasPaid) {
+          console.log('✅ User has paid but no profile - going to profile');
+          setCurrentView('profile');
+        } else {
+          console.log('❌ User has not paid - going to payment');
+          setCurrentView('payment');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh user data:', error);
     }
   };
 
@@ -547,6 +595,12 @@ function App() {
                           className="px-2 py-1 bg-orange-600 rounded text-xs"
                         >
                           Force Sync
+                        </button>
+                        <button 
+                          onClick={refreshUserData}
+                          className="px-2 py-1 bg-cyan-600 rounded text-xs"
+                        >
+                          Refresh Data
                         </button>
               </div>
               {debugMode && (
