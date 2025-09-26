@@ -116,6 +116,110 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
     loadData();
   }, [view]);
 
+  // Load data from database instead of local storage
+  useEffect(() => {
+    const loadDataFromDatabase = async () => {
+      if (!user?.id) return;
+      
+      try {
+        console.log('🔄 Loading data from database for user:', user.id);
+        
+        // Load today's data from database
+        const { getTodayEntries, getDailyTotals } = await import('../../lib/dailyTracking');
+        const todayEntries = await getTodayEntries(user.id);
+        const todayTotals = await getDailyTotals(user.id);
+        
+        console.log('📊 Today entries from database:', todayEntries);
+        console.log('📊 Today totals from database:', todayTotals);
+        
+        // Convert database entries to the format expected by the component
+        const formattedTodayData = {
+          date: new Date().toISOString().split('T')[0],
+          entries: todayEntries.map(entry => ({
+            id: entry.entry_id,
+            timestamp: entry.timestamp,
+            name: entry.food_name,
+            nutrition: {
+              calories: entry.calories,
+              protein_g: entry.protein_g,
+              fat_g: entry.fat_g,
+              carbs_g: entry.carbs_g
+            },
+            healthScore: entry.health_score,
+            confidence: entry.confidence
+          })),
+          totals: todayTotals ? {
+            calories: todayTotals.total_calories,
+            protein_g: todayTotals.total_protein_g,
+            fat_g: todayTotals.total_fat_g,
+            carbs_g: todayTotals.total_carbs_g
+          } : {
+            calories: 0,
+            protein_g: 0,
+            fat_g: 0,
+            carbs_g: 0
+          }
+        };
+        
+        setTodayData(formattedTodayData);
+        console.log('✅ Today data loaded from database');
+        
+        // Load week data
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
+        
+        const { getEntriesForDateRange } = await import('../../lib/dailyTracking');
+        const weekEntries = await getEntriesForDateRange(
+          user.id,
+          weekStart.toISOString().split('T')[0],
+          weekEnd.toISOString().split('T')[0]
+        );
+        
+        // Group entries by date
+        const weekData = {};
+        weekEntries.forEach(entry => {
+          const date = entry.date;
+          if (!weekData[date]) {
+            weekData[date] = {
+              date,
+              entries: [],
+              totals: { calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 }
+            };
+          }
+          weekData[date].entries.push({
+            id: entry.entry_id,
+            timestamp: entry.timestamp,
+            name: entry.food_name,
+            nutrition: {
+              calories: entry.calories,
+              protein_g: entry.protein_g,
+              fat_g: entry.fat_g,
+              carbs_g: entry.carbs_g
+            },
+            healthScore: entry.health_score,
+            confidence: entry.confidence
+          });
+          weekData[date].totals.calories += entry.calories;
+          weekData[date].totals.protein_g += entry.protein_g;
+          weekData[date].totals.fat_g += entry.fat_g;
+          weekData[date].totals.carbs_g += entry.carbs_g;
+        });
+        
+        setWeekData(weekData);
+        console.log('✅ Week data loaded from database');
+        
+      } catch (error) {
+        console.error('❌ Failed to load data from database:', error);
+        // Fallback to local storage
+        loadData();
+      }
+    };
+    
+    loadDataFromDatabase();
+  }, [user]);
+
   const loadData = () => {
     const today = getTodayMacros();
     setTodayData(today);
@@ -128,9 +232,68 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
     }
   };
 
-  const handleDeleteEntry = (date, entryId) => {
-    if (deleteFoodEntry(date, entryId)) {
-      loadData();
+  const handleDeleteEntry = async (date, entryId) => {
+    try {
+      if (user?.id) {
+        // Delete from database
+        const { deleteFoodEntry: deleteFromDatabase } = await import('../../lib/dailyTracking');
+        const success = await deleteFromDatabase(user.id, entryId);
+        
+        if (success) {
+          console.log('✅ Entry deleted from database');
+          // Reload data from database
+          const loadDataFromDatabase = async () => {
+            const { getTodayEntries, getDailyTotals } = await import('../../lib/dailyTracking');
+            const todayEntries = await getTodayEntries(user.id);
+            const todayTotals = await getDailyTotals(user.id);
+            
+            const formattedTodayData = {
+              date: new Date().toISOString().split('T')[0],
+              entries: todayEntries.map(entry => ({
+                id: entry.entry_id,
+                timestamp: entry.timestamp,
+                name: entry.food_name,
+                nutrition: {
+                  calories: entry.calories,
+                  protein_g: entry.protein_g,
+                  fat_g: entry.fat_g,
+                  carbs_g: entry.carbs_g
+                },
+                healthScore: entry.health_score,
+                confidence: entry.confidence
+              })),
+              totals: todayTotals ? {
+                calories: todayTotals.total_calories,
+                protein_g: todayTotals.total_protein_g,
+                fat_g: todayTotals.total_fat_g,
+                carbs_g: todayTotals.total_carbs_g
+              } : {
+                calories: 0,
+                protein_g: 0,
+                fat_g: 0,
+                carbs_g: 0
+              }
+            };
+            
+            setTodayData(formattedTodayData);
+          };
+          
+          loadDataFromDatabase();
+        } else {
+          console.error('❌ Failed to delete entry from database');
+        }
+      } else {
+        // Fallback to local storage
+        if (deleteFoodEntry(date, entryId)) {
+          loadData();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error deleting entry:', error);
+      // Fallback to local storage
+      if (deleteFoodEntry(date, entryId)) {
+        loadData();
+      }
     }
   };
 

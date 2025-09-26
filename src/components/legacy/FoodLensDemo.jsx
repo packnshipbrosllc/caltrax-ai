@@ -274,7 +274,17 @@ export default function FoodLensDemo({ onLogout, onShowDashboard, onShowMealPlan
       setResult(stamped);
 
       // Add to macro tracking
-      addFoodEntry(stamped);
+      if (propUser?.id) {
+        try {
+          await addFoodEntry(stamped, propUser.id);
+          console.log('✅ AI analysis food entry added to database');
+        } catch (error) {
+          console.error('❌ Failed to add AI analysis to database, using local storage:', error);
+          addFoodEntry(stamped);
+        }
+      } else {
+        addFoodEntry(stamped);
+      }
 
       // Voice output
       const ttsText = `${result.name}. Calories ${result.nutrition.calories}. Protein ${result.nutrition.protein_g} grams. Fat ${result.nutrition.fat_g} grams. Carbs ${result.nutrition.carbs_g} grams. Health score ${score} out of 10.`;
@@ -297,7 +307,7 @@ export default function FoodLensDemo({ onLogout, onShowDashboard, onShowMealPlan
     return 'session_' + Math.random().toString(36).substr(2, 9);
   }
 
-  const handleBarcodeDetected = (barcode, productInfo) => {
+  const handleBarcodeDetected = async (barcode, productInfo) => {
     // In a real app, you'd look up the barcode in a food database
     const foodData = {
       name: productInfo?.name || `Product (${barcode})`,
@@ -313,7 +323,19 @@ export default function FoodLensDemo({ onLogout, onShowDashboard, onShowMealPlan
       barcode: barcode
     };
 
-    addFoodEntry(foodData);
+    // Add to database if user is available
+    if (propUser?.id) {
+      try {
+        await addFoodEntry(foodData, propUser.id);
+        console.log('✅ Food entry added to database');
+      } catch (error) {
+        console.error('❌ Failed to add to database, using local storage:', error);
+        addFoodEntry(foodData);
+      }
+    } else {
+      addFoodEntry(foodData);
+    }
+    
     setResult(foodData);
     setShowBarcodeScanner(false);
   };
