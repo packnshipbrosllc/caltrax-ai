@@ -181,17 +181,28 @@ export default function UserProfile({ onComplete, user }) {
       
       console.log('Profile completed - updatedUser:', updatedUser);
       
-      // Save to Supabase first
+      // Save to database using the correct Clerk-based functions
       try {
         if (user?.id) {
-          console.log('Saving profile to Supabase...', completeProfile);
-          await authService.updateProfile(user.id, completeProfile);
-          console.log('✅ Profile saved to Supabase successfully');
+          console.log('Saving profile to database...', completeProfile);
+          
+          // Import the database functions
+          const { createOrUpdateUser } = await import('../../lib/database');
+          
+          // Update the user in the database with profile data
+          await createOrUpdateUser({
+            clerk_user_id: user.id,
+            email: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '',
+            profile_data: completeProfile,
+            // Keep existing payment status
+          });
+          
+          console.log('✅ Profile saved to database successfully');
         } else {
-          console.log('❌ No user ID found, cannot save to Supabase');
+          console.log('❌ No user ID found, cannot save to database');
         }
       } catch (error) {
-        console.error('❌ Failed to save profile to Supabase:', error);
+        console.error('❌ Failed to save profile to database:', error);
         console.log('Falling back to local storage...');
       }
       

@@ -31,7 +31,7 @@ export const saveMacroData = (data) => {
   }
 };
 
-export const addFoodEntry = (foodData) => {
+export const addFoodEntry = async (foodData, clerkUserId = null) => {
   try {
     console.log('🔍 addFoodEntry called with:', foodData);
     
@@ -40,6 +40,57 @@ export const addFoodEntry = (foodData) => {
       return null;
     }
     
+    // Try to save to database first if user is available
+    if (clerkUserId) {
+      try {
+        const { addFoodEntry: addToDatabase } = await import('./dailyTracking');
+        const dbEntry = await addToDatabase(clerkUserId, foodData);
+        
+        if (dbEntry) {
+          console.log('✅ Food entry saved to database');
+          // Also save to local storage as backup
+          const today = getTodayDate();
+          const macroData = getMacroData();
+          
+          if (!macroData[today]) {
+            macroData[today] = {
+              date: today,
+              entries: [],
+              totals: {
+                calories: 0,
+                protein_g: 0,
+                fat_g: 0,
+                carbs_g: 0
+              }
+            };
+          }
+          
+          const entry = {
+            id: dbEntry.entry_id,
+            timestamp: dbEntry.timestamp,
+            name: foodData.name,
+            nutrition: foodData.nutrition,
+            healthScore: foodData.score || 0,
+            confidence: foodData.confidence || 0
+          };
+          
+          macroData[today].entries.push(entry);
+          
+          // Update totals
+          macroData[today].totals.calories += foodData.nutrition.calories || 0;
+          macroData[today].totals.protein_g += foodData.nutrition.protein_g || 0;
+          macroData[today].totals.fat_g += foodData.nutrition.fat_g || 0;
+          macroData[today].totals.carbs_g += foodData.nutrition.carbs_g || 0;
+          
+          saveMacroData(macroData);
+          return entry;
+        }
+      } catch (error) {
+        console.error('❌ Failed to save to database, falling back to local storage:', error);
+      }
+    }
+    
+    // Fallback to local storage only
     const today = getTodayDate();
     const macroData = getMacroData();
     
@@ -74,7 +125,7 @@ export const addFoodEntry = (foodData) => {
     macroData[today].totals.carbs_g += foodData.nutrition.carbs_g || 0;
     
     saveMacroData(macroData);
-    console.log('✅ Food entry added successfully:', entry);
+    console.log('✅ Food entry added successfully (local storage):', entry);
     return entry;
   } catch (error) {
     console.error('❌ Error in addFoodEntry:', error);
