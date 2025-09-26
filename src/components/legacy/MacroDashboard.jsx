@@ -51,43 +51,64 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
 
   // Update daily goals when user profile changes
   useEffect(() => {
-    console.log('🔍 MacroDashboard useEffect - user:', user);
-    console.log('🔍 MacroDashboard useEffect - user?.publicMetadata:', user?.publicMetadata);
-    
-    // Get profile from Clerk user metadata
-    const clerkProfile = user?.publicMetadata?.caltraxProfile;
-    
-    // Fallback to local storage
-    const storedProfile = simpleStorage.getItem('caltrax-profile');
-    
-    console.log('🔍 MacroDashboard - clerkProfile:', clerkProfile);
-    console.log('🔍 MacroDashboard - storedProfile:', storedProfile);
-    
-    const profile = clerkProfile || storedProfile;
-    
-    if (profile) {
-      console.log('MacroDashboard - Updating daily goals from profile');
-      console.log('MacroDashboard - profile.calories:', profile.calories);
-      console.log('MacroDashboard - profile.macros:', profile.macros);
+    const loadProfileData = async () => {
+      console.log('🔍 MacroDashboard useEffect - user:', user);
+      console.log('🔍 MacroDashboard useEffect - user?.unsafeMetadata:', user?.unsafeMetadata);
       
-      const newDailyGoals = {
-        calories: profile.calories || 2000,
-        protein_g: profile.macros?.protein || 150,
-        fat_g: profile.macros?.fat || 65,
-        carbs_g: profile.macros?.carbs || 250
-      };
+      // Get profile from Clerk user metadata
+      const clerkProfile = user?.unsafeMetadata?.caltraxProfile;
       
-      console.log('MacroDashboard - Setting new daily goals:', newDailyGoals);
-      setDailyGoals(newDailyGoals);
-    } else {
-      console.log('❌ No profile found, using default goals');
-      setDailyGoals({
-        calories: 2000,
-        protein_g: 150,
-        fat_g: 65,
-        carbs_g: 250
-      });
-    }
+      // Fallback to local storage
+      const storedProfile = simpleStorage.getItem('caltrax-profile');
+      
+      console.log('🔍 MacroDashboard - clerkProfile:', clerkProfile);
+      console.log('🔍 MacroDashboard - storedProfile:', storedProfile);
+      
+      let profile = clerkProfile || storedProfile;
+      
+      // If no profile found, try to load from database
+      if (!profile && user?.id) {
+        try {
+          console.log('🔍 MacroDashboard - No profile found, checking database...');
+          const response = await fetch(`/api/debug-user?clerkUserId=${user.id}`);
+          const data = await response.json();
+          console.log('🔍 MacroDashboard - Database response:', data);
+          
+          if (data.user?.profile_data) {
+            profile = data.user.profile_data;
+            console.log('🔍 MacroDashboard - Found profile in database:', profile);
+          }
+        } catch (error) {
+          console.error('❌ Failed to load profile from database:', error);
+        }
+      }
+      
+      if (profile) {
+        console.log('MacroDashboard - Updating daily goals from profile');
+        console.log('MacroDashboard - profile.calories:', profile.calories);
+        console.log('MacroDashboard - profile.macros:', profile.macros);
+        
+        const newDailyGoals = {
+          calories: profile.calories || 2000,
+          protein_g: profile.macros?.protein || 150,
+          fat_g: profile.macros?.fat || 65,
+          carbs_g: profile.macros?.carbs || 250
+        };
+        
+        console.log('MacroDashboard - Setting new daily goals:', newDailyGoals);
+        setDailyGoals(newDailyGoals);
+      } else {
+        console.log('❌ No profile found, using default goals');
+        setDailyGoals({
+          calories: 2000,
+          protein_g: 150,
+          fat_g: 65,
+          carbs_g: 250
+        });
+      }
+    };
+    
+    loadProfileData();
   }, [user]);
 
 
