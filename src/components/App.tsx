@@ -106,24 +106,20 @@ function App() {
           const email = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || '';
           const userId = user.id;
           
-          // Create or get user from database
+          // Create or get user from database (don't overwrite payment status)
           const dbUser = await createOrUpdateUser({
             clerk_user_id: userId,
             email: email,
-            has_paid: false, // Will be updated by payment
-            plan: null,
-            payment_date: null,
-            trial_used: false,
-            trial_start_date: null,
+            // Don't set payment fields - let the database preserve existing values
             profile_data: user.unsafeMetadata?.caltraxProfile || null
           });
           
           console.log('Database user:', dbUser);
           
-          // Check payment status from database
-          const hasPaid = dbUser?.has_paid || false;
-          const plan = dbUser?.plan;
-          const trialUsed = dbUser?.trial_used || false;
+          // Check payment status from database, fallback to local storage
+          const hasPaid = dbUser?.has_paid || simpleStorage.getItem('caltrax-has-paid') || false;
+          const plan = dbUser?.plan || simpleStorage.getItem('caltrax-plan');
+          const trialUsed = dbUser?.trial_used || simpleStorage.getItem('caltrax-trial-used') || false;
           
           console.log('🔍 Payment check from database:');
           console.log('  - hasPaid:', hasPaid);
@@ -606,9 +602,13 @@ function App() {
               {debugMode && (
                 <div className="space-y-1">
                   <div>User: {user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || 'Unknown'}</div>
-                      <div>Has Profile: {user?.unsafeMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
-                      <div>Calories: {user?.unsafeMetadata?.caltraxProfile?.calories || 'N/A'}</div>
+                  <div>Has Profile: {user?.unsafeMetadata?.caltraxProfile ? 'Yes' : 'No'}</div>
+                  <div>Calories: {user?.unsafeMetadata?.caltraxProfile?.calories || 'N/A'}</div>
                   <div>View: {currentView}</div>
+                  <div>Profile Completed: {profileCompleted ? 'Yes' : 'No'}</div>
+                  <div>Has Active Subscription: {hasActiveSubscription ? 'Yes' : 'No'}</div>
+                  <div>Local Storage Paid: {simpleStorage.getItem('caltrax-has-paid') ? 'Yes' : 'No'}</div>
+                  <div>Local Storage Profile: {simpleStorage.getItem('caltrax-profile') ? 'Yes' : 'No'}</div>
                 </div>
               )}
             </div>

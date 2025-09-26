@@ -83,15 +83,24 @@ export async function createOrUpdateUser(userData: {
       };
     }
 
+    // Preserve existing payment data if not provided
+    const existingPaymentData = existingUser ? {
+      has_paid: existingUser.has_paid,
+      plan: existingUser.plan,
+      payment_date: existingUser.payment_date,
+      trial_used: existingUser.trial_used,
+      trial_start_date: existingUser.trial_start_date,
+    } : {};
+
     const updateData = {
       email: userData.email,
       clerk_user_id: userData.clerk_user_id,
-      has_paid: userData.has_paid || false,
-      plan: userData.plan || null,
-      payment_date: userData.payment_date || null,
-      trial_used: userData.trial_used || false,
-      trial_start_date: userData.trial_start_date || null,
-      subscription_status: userData.has_paid ? 'active' : 'inactive',
+      has_paid: userData.has_paid !== undefined ? userData.has_paid : existingPaymentData.has_paid || false,
+      plan: userData.plan !== undefined ? userData.plan : existingPaymentData.plan || null,
+      payment_date: userData.payment_date !== undefined ? userData.payment_date : existingPaymentData.payment_date || null,
+      trial_used: userData.trial_used !== undefined ? userData.trial_used : existingPaymentData.trial_used || false,
+      trial_start_date: userData.trial_start_date !== undefined ? userData.trial_start_date : existingPaymentData.trial_start_date || null,
+      subscription_status: (userData.has_paid !== undefined ? userData.has_paid : existingPaymentData.has_paid || false) ? 'active' : 'inactive',
       updated_at: new Date().toISOString(),
       ...profileData
     };
