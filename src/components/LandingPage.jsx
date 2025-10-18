@@ -280,7 +280,7 @@ export default function LandingPage({ onGetStarted, onShowSignIn }) {
                   }
                 }}
                 routing="hash"
-                afterSignInUrl="#"
+                forceRedirectUrl="/app"
               />
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function LandingPage({ onGetStarted, onShowSignIn }) {
                   }
                 }}
                 routing="hash"
-                afterSignUpUrl="#"
+                forceRedirectUrl="/app"
               />
             </div>
           </div>
