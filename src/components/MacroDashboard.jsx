@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Progress } from './ui/Progress';
 import { getTodayMacros, getWeekMacros, getWeeklyTotals, deleteFoodEntry } from '../utils/macroStorage';
+import { syncAllUserData } from '../utils/dataSync';
 import { useUser } from '@clerk/clerk-react';
 
 const formatTime = (timestamp) => {
@@ -82,8 +83,35 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
     loadData();
   }, [view]);
 
+  // Sync data from Supabase when user loads
+  useEffect(() => {
+    if (isLoaded && user?.id) {
+      syncDataFromSupabase();
+    }
+  }, [isLoaded, user]);
+
+  const syncDataFromSupabase = async () => {
+    try {
+      console.log('🔄 MacroDashboard: Syncing data from Supabase...');
+      const success = await syncAllUserData(user.id);
+      
+      if (success) {
+        console.log('✅ MacroDashboard: Data sync completed, reloading...');
+        // Reload data after sync
+        loadData();
+      } else {
+        console.log('⚠️ MacroDashboard: Data sync had issues, using local data');
+        loadData();
+      }
+    } catch (error) {
+      console.error('❌ MacroDashboard: Error syncing data:', error);
+      // Fallback to local data
+      loadData();
+    }
+  };
+
   const loadData = async () => {
-    // For now, use localStorage until database is set up
+    // Load from localStorage (which now includes synced Supabase data)
     const today = getTodayMacros();
     setTodayData(today);
     
@@ -93,27 +121,6 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
       setWeekData(week);
       setWeeklyTotals(totals);
     }
-    
-    /* TODO: Replace with database calls when backend is ready
-    if (!user?.id) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tracking/entries`, {
-        headers: {
-          'Authorization': `Bearer ${userToken}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Process database data...
-      }
-    } catch (error) {
-      console.error('Error loading from database:', error);
-    }
-    */
   };
 
   const handleDeleteEntry = async (date, entryId) => {

@@ -18,6 +18,7 @@ import { secureStorage, hasAdminAccess } from './utils/security';
 import { simpleStorage } from './utils/simpleStorage';
 import { authService } from './services/authService';
 import { paymentService } from './services/paymentService';
+import { syncAllUserData } from './utils/dataSync';
 
 // Main App Component with Clerk Integration
 function AppContent() {
@@ -117,6 +118,18 @@ function AppContent() {
             console.log('User ready, going to app');
             setCurrentView('app');
             setProfileCompleted(true);
+            
+            // Sync data from Supabase on app startup
+            console.log('🔄 Starting data sync for authenticated user...');
+            syncAllUserData(user.id).then(success => {
+              if (success) {
+                console.log('✅ App startup data sync completed');
+              } else {
+                console.log('⚠️ App startup data sync had issues, but continuing...');
+              }
+            }).catch(error => {
+              console.error('❌ App startup data sync failed:', error);
+            });
           }
         } else {
           console.log('No user signed in, showing landing');
