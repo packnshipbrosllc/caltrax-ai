@@ -92,11 +92,15 @@ export const addFoodEntry = async (foodData, clerkUserId = null) => {
 
       if (error) {
         console.error('❌ Supabase save error:', error);
+        // Re-throw so calling code knows it failed
+        throw new Error(`Failed to save food entry: ${error.message}`);
       } else {
         console.log('✅ Food entry saved to Supabase:', data);
       }
     } catch (error) {
       console.error('❌ Supabase error:', error);
+      // Re-throw so calling code can handle the error
+      throw error;
     }
   }
   

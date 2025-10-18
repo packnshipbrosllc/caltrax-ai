@@ -50,6 +50,7 @@ export default function FoodLensDemo({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [useOpenAITTS, setUseOpenAITTS] = useState(false);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -75,6 +76,12 @@ export default function FoodLensDemo({
       }
     };
   }, []);
+
+  // Notification helper
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const startCamera = async () => {
     try {
@@ -164,11 +171,14 @@ export default function FoodLensDemo({
         try {
           await addFoodEntry(stamped, user.id);
           console.log('✅ Food entry saved successfully');
+          showNotification('Food entry saved successfully!', 'success');
         } catch (saveError) {
           console.error('❌ Failed to save food entry to database:', saveError);
+          showNotification('Failed to save food entry. Trying again...', 'error');
         }
       } else {
         console.error('❌ No user ID available, cannot save to database');
+        showNotification('Please sign in to save food entries', 'error');
       }
 
       // Voice output
@@ -196,8 +206,10 @@ export default function FoodLensDemo({
           try {
             await addFoodEntry(stamped, user.id);
             console.log('✅ Mock food entry saved successfully');
+            showNotification('Mock food entry saved successfully!', 'success');
           } catch (saveError) {
             console.error('❌ Failed to save mock food entry to database:', saveError);
+            showNotification('Failed to save mock food entry. Trying again...', 'error');
           }
         }
         const ttsText = `${mockResult.name}. Calories ${mockResult.nutrition.calories}.`;

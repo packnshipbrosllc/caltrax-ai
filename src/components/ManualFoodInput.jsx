@@ -4,8 +4,10 @@ import { Search, Plus, X, Utensils, Calculator } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { addFoodEntry } from '../utils/macroStorage';
+import { useUser } from '@clerk/clerk-react';
 
 const ManualFoodInput = ({ onClose, onFoodAdded }) => {
+  const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -128,7 +130,7 @@ const ManualFoodInput = ({ onClose, onFoodAdded }) => {
       source: 'manual'
     };
 
-    addFoodEntry(foodData);
+    addFoodEntry(foodData, user?.id);
     onFoodAdded(foodData);
     onClose();
   };
@@ -151,7 +153,7 @@ const ManualFoodInput = ({ onClose, onFoodAdded }) => {
       source: 'custom'
     };
 
-    addFoodEntry(foodData);
+    addFoodEntry(foodData, user?.id);
     onFoodAdded(foodData);
     onClose();
   };

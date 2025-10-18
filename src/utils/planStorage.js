@@ -1,5 +1,6 @@
 // Plan storage and rate limiting utilities
 import { simpleStorage } from './simpleStorage';
+import { supabase } from '../config/supabase';
 
 const PLAN_STORAGE_KEYS = {
   WORKOUT_PLANS: 'caltrax-workout-plans',
@@ -55,7 +56,7 @@ export const planStorage = {
   },
 
   // Save workout plan
-  saveWorkoutPlan: (userId, plan) => {
+  saveWorkoutPlan: async (userId, plan) => {
     try {
       const plans = simpleStorage.getItem(PLAN_STORAGE_KEYS.WORKOUT_PLANS) || {};
       if (!plans[userId]) {
@@ -64,8 +65,8 @@ export const planStorage = {
       
       const planWithMetadata = {
         ...plan,
-        id: `workout-${Date.now()}`,
-        createdAt: new Date().toISOString(),
+        id: plan.id || `workout-${Date.now()}`,
+        createdAt: plan.createdAt || new Date().toISOString(),
         userId
       };
       
@@ -76,8 +77,35 @@ export const planStorage = {
         plans[userId] = plans[userId].slice(0, 10);
       }
       
+      // 1. Save to localStorage (backup)
       simpleStorage.setItem(PLAN_STORAGE_KEYS.WORKOUT_PLANS, plans);
-      console.log('Workout plan saved:', planWithMetadata);
+      console.log('Workout plan saved to localStorage:', planWithMetadata);
+
+      // 2. Save to Supabase (primary)
+      if (userId) {
+        try {
+          const { data, error } = await supabase
+            .from('workout_plans')
+            .upsert({
+              clerk_user_id: userId,
+              plan_id: planWithMetadata.id,
+              plan_data: planWithMetadata,
+              created_at: planWithMetadata.createdAt,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'plan_id' });
+
+          if (error) {
+            console.error('❌ Supabase error saving workout plan:', error);
+            // Keep localStorage as fallback, but log the error
+          } else {
+            console.log('✅ Workout plan saved to Supabase:', data);
+          }
+        } catch (supabaseError) {
+          console.error('❌ Supabase connection error saving workout plan:', supabaseError);
+          // localStorage already saved as backup
+        }
+      }
+
       return planWithMetadata;
     } catch (error) {
       console.error('Error saving workout plan:', error);
@@ -86,7 +114,7 @@ export const planStorage = {
   },
 
   // Save meal plan
-  saveMealPlan: (userId, plan) => {
+  saveMealPlan: async (userId, plan) => {
     try {
       const plans = simpleStorage.getItem(PLAN_STORAGE_KEYS.MEAL_PLANS) || {};
       if (!plans[userId]) {
@@ -95,8 +123,8 @@ export const planStorage = {
       
       const planWithMetadata = {
         ...plan,
-        id: `meal-${Date.now()}`,
-        createdAt: new Date().toISOString(),
+        id: plan.id || `meal-${Date.now()}`,
+        createdAt: plan.createdAt || new Date().toISOString(),
         userId
       };
       
@@ -107,8 +135,35 @@ export const planStorage = {
         plans[userId] = plans[userId].slice(0, 10);
       }
       
+      // 1. Save to localStorage (backup)
       simpleStorage.setItem(PLAN_STORAGE_KEYS.MEAL_PLANS, plans);
-      console.log('Meal plan saved:', planWithMetadata);
+      console.log('Meal plan saved to localStorage:', planWithMetadata);
+
+      // 2. Save to Supabase (primary)
+      if (userId) {
+        try {
+          const { data, error } = await supabase
+            .from('meal_plans')
+            .upsert({
+              clerk_user_id: userId,
+              plan_id: planWithMetadata.id,
+              plan_data: planWithMetadata,
+              created_at: planWithMetadata.createdAt,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'plan_id' });
+
+          if (error) {
+            console.error('❌ Supabase error saving meal plan:', error);
+            // Keep localStorage as fallback, but log the error
+          } else {
+            console.log('✅ Meal plan saved to Supabase:', data);
+          }
+        } catch (supabaseError) {
+          console.error('❌ Supabase connection error saving meal plan:', supabaseError);
+          // localStorage already saved as backup
+        }
+      }
+
       return planWithMetadata;
     } catch (error) {
       console.error('Error saving meal plan:', error);
