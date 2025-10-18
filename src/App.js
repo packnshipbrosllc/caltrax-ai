@@ -53,6 +53,12 @@ function AppContent() {
       console.log('Clerk still loading...');
       return;
     }
+    
+    // ✅ Stop re-initialization
+    if (hasInitialized.current) {
+      console.log('App already initialized, skipping...');
+      return;
+    }
 
     console.log('=== CLERK LOADED ===');
     console.log('isSignedIn:', isSignedIn);
@@ -121,6 +127,7 @@ function AppContent() {
         setCurrentView('landing');
       } finally {
         setIsLoading(false);
+        hasInitialized.current = true; // ✅ Mark as initialized
       }
     };
 
