@@ -66,9 +66,9 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
           entries: [],
           totals: {
             calories: 0,
-            protein_g: 0,
-            fat_g: 0,
-            carbs_g: 0
+            protein: 0,
+            fat: 0,
+            carbs: 0
           }
         };
       }
@@ -80,9 +80,9 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
         name: entry.name,
         nutrition: {
           calories: entry.calories,
-          protein_g: entry.protein_g,
-          fat_g: entry.fat_g,
-          carbs_g: entry.carbs_g
+          protein_g: entry.protein,
+          fat_g: entry.fat,
+          carbs_g: entry.carbs
         },
         healthScore: entry.health_score,
         confidence: entry.confidence,
@@ -102,14 +102,14 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
       // Recalculate totals for this date
       localData[date].totals = localData[date].entries.reduce((totals, entry) => ({
         calories: totals.calories + (entry.nutrition.calories || 0),
-        protein_g: totals.protein_g + (entry.nutrition.protein_g || 0),
-        fat_g: totals.fat_g + (entry.nutrition.fat_g || 0),
-        carbs_g: totals.carbs_g + (entry.nutrition.carbs_g || 0)
+        protein: totals.protein + (entry.nutrition.protein_g || 0),
+        fat: totals.fat + (entry.nutrition.fat_g || 0),
+        carbs: totals.carbs + (entry.nutrition.carbs_g || 0)
       }), {
         calories: 0,
-        protein_g: 0,
-        fat_g: 0,
-        carbs_g: 0
+        protein: 0,
+        fat: 0,
+        carbs: 0
       });
     });
 

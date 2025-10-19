@@ -45,9 +45,9 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
   const [weeklyTotals, setWeeklyTotals] = useState(null);
   const [dailyGoals, setDailyGoals] = useState({
     calories: 2000,
-    protein_g: 150,
-    fat_g: 65,
-    carbs_g: 250
+    protein: 150,
+    fat: 65,
+    carbs: 250
   });
 
   // Update daily goals from Clerk user metadata
@@ -66,9 +66,9 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
       
       const newDailyGoals = {
         calories: Number(profile.calories),
-        protein_g: Number(profile.macros.protein),
-        fat_g: Number(profile.macros.fat),
-        carbs_g: Number(profile.macros.carbs)
+        protein: Number(profile.macros.protein),
+        fat: Number(profile.macros.fat),
+        carbs: Number(profile.macros.carbs)
       };
       
       console.log('Setting daily goals:', newDailyGoals);

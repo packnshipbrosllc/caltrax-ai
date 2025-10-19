@@ -43,9 +43,9 @@ export const addFoodEntry = async (foodData, clerkUserId = null) => {
       entries: [],
       totals: {
         calories: 0,
-        protein_g: 0,
-        fat_g: 0,
-        carbs_g: 0
+        protein: 0,
+        fat: 0,
+        carbs: 0
       }
     };
   }
@@ -63,9 +63,9 @@ export const addFoodEntry = async (foodData, clerkUserId = null) => {
   
   // Update totals
   macroData[today].totals.calories += foodData.nutrition.calories || 0;
-  macroData[today].totals.protein_g += foodData.nutrition.protein_g || 0;
-  macroData[today].totals.fat_g += foodData.nutrition.fat_g || 0;
-  macroData[today].totals.carbs_g += foodData.nutrition.carbs_g || 0;
+  macroData[today].totals.protein += foodData.nutrition.protein_g || 0;
+  macroData[today].totals.fat += foodData.nutrition.fat_g || 0;
+  macroData[today].totals.carbs += foodData.nutrition.carbs_g || 0;
   
   // Save to local storage
   saveMacroData(macroData);
@@ -137,9 +137,9 @@ export const getWeekMacros = () => {
       entries: [],
       totals: {
         calories: 0,
-        protein_g: 0,
-        fat_g: 0,
-        carbs_g: 0
+        protein: 0,
+        fat: 0,
+        carbs: 0
       }
     });
   }
@@ -151,14 +151,14 @@ export const getWeeklyTotals = () => {
   const weekData = getWeekMacros();
   return weekData.reduce((totals, day) => ({
     calories: totals.calories + day.totals.calories,
-    protein_g: totals.protein_g + day.totals.protein_g,
-    fat_g: totals.fat_g + day.totals.fat_g,
-    carbs_g: totals.carbs_g + day.totals.carbs_g
+    protein: totals.protein + day.totals.protein,
+    fat: totals.fat + day.totals.fat,
+    carbs: totals.carbs + day.totals.carbs
   }), {
     calories: 0,
-    protein_g: 0,
-    fat_g: 0,
-    carbs_g: 0
+    protein: 0,
+    fat: 0,
+    carbs: 0
   });
 };
 
@@ -173,9 +173,9 @@ export const deleteFoodEntry = (date, entryId) => {
   
   // Remove from totals
   macroData[date].totals.calories -= entry.nutrition.calories || 0;
-  macroData[date].totals.protein_g -= entry.nutrition.protein_g || 0;
-  macroData[date].totals.fat_g -= entry.nutrition.fat_g || 0;
-  macroData[date].totals.carbs_g -= entry.nutrition.carbs_g || 0;
+  macroData[date].totals.protein -= entry.nutrition.protein_g || 0;
+  macroData[date].totals.fat -= entry.nutrition.fat_g || 0;
+  macroData[date].totals.carbs -= entry.nutrition.carbs_g || 0;
   
   // Remove entry
   macroData[date].entries.splice(entryIndex, 1);
