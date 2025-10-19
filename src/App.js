@@ -121,6 +121,7 @@ function AppContent() {
             
             // Sync data from Supabase on app startup
             console.log('🔄 Starting data sync for authenticated user...');
+            console.log('🔍 App.js user ID:', user.id);
             syncAllUserData(user.id).then(success => {
               if (success) {
                 console.log('✅ App startup data sync completed');

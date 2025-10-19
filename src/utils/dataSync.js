@@ -14,12 +14,15 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
 
   try {
     console.log('🔄 Starting food entries sync from Supabase...');
+    console.log('🔍 Sync parameters:', { clerkUserId, supabaseClient: !!supabase });
     
     // Get last 30 days of data to ensure we have recent entries
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
     const startDateStr = startDate.toISOString().split('T')[0];
+
+    console.log('🔍 Date range:', { startDateStr, endDate });
 
     const { data: supabaseEntries, error } = await supabase
       .from('food_entries')
@@ -29,6 +32,12 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
       .lte('date', endDate)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
+
+    console.log('🔍 Supabase query result:', { 
+      entriesCount: supabaseEntries?.length || 0, 
+      error: error?.message || 'none',
+      sampleEntry: supabaseEntries?.[0] || 'none'
+    });
 
     if (error) {
       console.error('❌ Error fetching from Supabase:', error);

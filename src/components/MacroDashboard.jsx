@@ -93,6 +93,7 @@ export default function MacroDashboard({ onBack, onAddFood, onShowMealPlan, onSh
   const syncDataFromSupabase = async () => {
     try {
       console.log('🔄 MacroDashboard: Syncing data from Supabase...');
+      console.log('🔍 MacroDashboard user ID:', user?.id);
       const success = await syncAllUserData(user.id);
       
       if (success) {
