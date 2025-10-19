@@ -18,9 +18,7 @@ export async function addFoodEntry(clerkUserId, foodData) {
         calories: foodData.nutrition?.calories || 0,
         protein: foodData.nutrition?.protein_g || 0,
         fat: foodData.nutrition?.fat_g || 0,
-        carbs: foodData.nutrition?.carbs_g || 0,
-        health_score: foodData.score || 0,
-        confidence: foodData.confidence || 0
+        carbs: foodData.nutrition?.carbs_g || 0
       })
       .select()
       .single();

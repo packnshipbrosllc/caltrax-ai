@@ -84,8 +84,8 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
           fat_g: entry.fat,
           carbs_g: entry.carbs
         },
-        healthScore: entry.health_score,
-        confidence: entry.confidence,
+        healthScore: 0, // Default value since not stored in Supabase
+        confidence: 0,  // Default value since not stored in Supabase
         syncedFromSupabase: true // Mark as synced
       }));
 
