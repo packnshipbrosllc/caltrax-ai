@@ -30,8 +30,7 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
       .eq('clerk_user_id', clerkUserId)
       .gte('date', startDateStr)
       .lte('date', endDate)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
 
     console.log('🔍 Supabase query result:', { 
       entriesCount: supabaseEntries?.length || 0, 
@@ -85,7 +84,7 @@ export const syncFoodEntriesFromSupabase = async (clerkUserId) => {
       // Convert Supabase entries to local format and merge
       const convertedEntries = supabaseEntriesForDate.map(entry => ({
         id: entry.id.toString(),
-        timestamp: entry.created_at,
+        timestamp: entry.date, // Use date field since created_at doesn't exist
         name: entry.name,
         nutrition: {
           calories: entry.calories,

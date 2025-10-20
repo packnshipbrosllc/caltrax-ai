@@ -49,7 +49,7 @@ export async function getTodayEntries(clerkUserId) {
       .select('*')
       .eq('clerk_user_id', clerkUserId)
       .eq('date', today)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Error getting today entries:', error);
@@ -77,7 +77,7 @@ export async function getEntriesForDateRange(clerkUserId, startDate, endDate) {
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: true })
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Error getting entries for date range:', error);
