@@ -87,6 +87,19 @@ function AppContent() {
     const initializeApp = async () => {
       try {
         if (isSignedIn && user) {
+          // ALWAYS sync data for authenticated users, regardless of setup status
+          console.log('🔄 Starting data sync for authenticated user...');
+          console.log('🔍 App.js user ID:', user.id);
+          syncAllUserData(user.id).then(success => {
+            if (success) {
+              console.log('✅ App startup data sync completed');
+            } else {
+              console.log('⚠️ App startup data sync had issues, but continuing...');
+            }
+          }).catch(error => {
+            console.error('❌ App startup data sync failed:', error);
+          });
+
           // Check URL for success page
           const urlParams = new URLSearchParams(window.location.search);
           const sessionId = urlParams.get('session_id');
@@ -118,19 +131,6 @@ function AppContent() {
             console.log('User ready, going to app');
             setCurrentView('app');
             setProfileCompleted(true);
-            
-            // Sync data from Supabase on app startup
-            console.log('🔄 Starting data sync for authenticated user...');
-            console.log('🔍 App.js user ID:', user.id);
-            syncAllUserData(user.id).then(success => {
-              if (success) {
-                console.log('✅ App startup data sync completed');
-              } else {
-                console.log('⚠️ App startup data sync had issues, but continuing...');
-              }
-            }).catch(error => {
-              console.error('❌ App startup data sync failed:', error);
-            });
           }
         } else {
           console.log('No user signed in, showing landing');
